@@ -5,37 +5,42 @@
                 <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
                 <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
             </div>
-
-            {{-- Pending alerts --}}
-            <div class="flex items-center gap-2 flex-wrap">
-                @if($pendingComments > 0)
-                    <a href="{{ route('admin.comments.index', ['status' => 'pending']) }}"
-                       class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs font-medium rounded-lg hover:bg-yellow-100 transition">
-                        {{-- Bell icon --}}
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        {{ $pendingComments }} pending {{ Str::plural('comment', $pendingComments) }}
-                    </a>
-                @endif
-
-                @if($draftPosts > 0)
-                    <a href="{{ route('admin.posts.index', ['status' => 'draft']) }}"
-                       class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-100 transition">
-                        {{-- Document icon --}}
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        {{ $draftPosts }} {{ Str::plural('draft', $draftPosts) }}
-                    </a>
-                @endif
-            </div>
         </div>
     </x-slot>
 
     <div class="py-8 max-w-7xl mx-auto px-4 space-y-6">
+
+        {{-- Pending alerts --}}
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="pending-comments">
+                <a href="{{ route('admin.comments.index', ['status' => 'pending']) }}"
+                    @class([
+                        'flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition text-xs font-medium',
+                        'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100' => $pendingComments > 0,
+                        'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100' => $pendingComments <= 0,
+                    ])>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    {{ $pendingComments }} {{ Str::plural('pending', $pendingComments) }}
+                </a>
+            </div>
+
+            <div class="draft-posts">
+                <a href="{{ route('admin.posts.index', ['status' => 'draft']) }}"
+                    @class([
+                        'flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition text-xs font-medium',
+                        'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100' => $draftPosts > 0,
+                        'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100' => $draftPosts <= 0,
+                    ])>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    {{ $draftPosts }} {{ Str::plural('draft', $draftPosts) }}
+                </a>
+            </div>
+        </div>
+
 
         {{-- =============================================
              ROW 1: Welcome Card + Personal Stats

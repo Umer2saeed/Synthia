@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StorePostRequest;
+use App\Http\Requests\Admin\UpdatePostRequest;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
@@ -73,60 +75,23 @@ class PostController extends Controller
     | status = 'published' or 'scheduled', we override it to 'draft'.
     | Only users with 'publish posts' permission can set those statuses.
     */
-    public function store(Request $request)
+    public function store(StorePostRequest $request)
     {
-        $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'slug'         => 'nullable|string|max:255|unique:posts,slug',
-            'category_id'  => 'required|exists:categories,id',
-            'content'      => 'required|string',
-            'status'       => 'required|in:draft,published,scheduled',
-            'is_featured'  => 'nullable|boolean',
-            'ai_summary'   => 'nullable|string|max:500',
-            'published_at' => 'nullable|date',
-            'cover_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        $validated = $request->validated();
 
-        /*
-        |----------------------------------------------------------------------
-        | Publish permission enforcement
-        |----------------------------------------------------------------------
-        | If the user does not have 'publish posts', force status to draft
-        | regardless of what was submitted. This is a server-side guard —
-        | the form already hides the option but we never trust the client.
-        */
-        if (!auth()->user()->can('publish posts')) {
-            $validated['status'] = 'draft';
-        }
-
-        /*
-        |----------------------------------------------------------------------
-        | Featured permission enforcement
-        |----------------------------------------------------------------------
-        | Same principle — authors cannot mark posts as featured.
-        */
-        if (!auth()->user()->can('publish posts')) {
-            $validated['is_featured'] = false;
-        }
-
-        // Handle cover image upload
         if ($request->hasFile('cover_image')) {
             $validated['cover_image'] = $request->file('cover_image')
                 ->store('posts', 'public');
         }
 
-        // Auto-generate slug if not provided
         if (empty($validated['slug'])) {
             $validated['slug'] = Post::generateUniqueSlug($validated['title']);
         }
 
-        // Attach logged-in user as author
         $validated['user_id']    = auth()->id();
         $validated['is_featured'] = $request->boolean('is_featured');
 
         $post = Post::create($validated);
-
-        // Sync tags via pivot table
         $post->tags()->sync($request->input('tags', []));
 
         return redirect()->route('admin.posts.index')
@@ -169,43 +134,10 @@ class PostController extends Controller
     | Same ownership check as edit().
     | Same publish + featured enforcement as store().
     */
-    public function update(Request $request, Post $post)
+    public function update(UpdatePostRequest $request, Post $post)
     {
-        $this->authorizePostAccess($post, 'edit');
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'slug'         => ['nullable', 'string', 'max:255', Rule::unique('posts', 'slug')->ignore($post->id)],
-            'category_id'  => 'required|exists:categories,id',
-            'content'      => 'required|string',
-            'status'       => 'required|in:draft,published,scheduled',
-            'is_featured'  => 'nullable|boolean',
-            'ai_summary'   => 'nullable|string|max:500',
-            'published_at' => 'nullable|date',
-            'cover_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
-
-        // Enforce publish permission — cannot upgrade to published/scheduled
-        if (!auth()->user()->can('publish posts')) {
-            /*
-            | If the post is already published (set by an editor before),
-            | we keep it published — we only block AUTHORS from changing
-            | a draft to published. We do not downgrade existing published posts.
-            */
-            if ($post->status === 'draft') {
-                $validated['status'] = 'draft';
-            }
-        }
-
-        // Enforce featured permission
-        if (!auth()->user()->can('publish posts')) {
-            // Keep whatever the current value is — don't let author change it
-            $validated['is_featured'] = $post->is_featured;
-        } else {
-            $validated['is_featured'] = $request->boolean('is_featured');
-        }
-
-        // Handle cover image replacement
         if ($request->hasFile('cover_image')) {
             if ($post->cover_image) {
                 Storage::disk('public')->delete($post->cover_image);
@@ -216,14 +148,11 @@ class PostController extends Controller
             unset($validated['cover_image']);
         }
 
-        // Auto-generate slug if cleared
         if (empty($validated['slug'])) {
             $validated['slug'] = Post::generateUniqueSlug($validated['title'], $post->id);
         }
 
         $post->update($validated);
-
-        // Re-sync tags
         $post->tags()->sync($request->input('tags', []));
 
         return redirect()->route('admin.posts.index')

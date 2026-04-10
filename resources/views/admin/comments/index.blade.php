@@ -6,16 +6,9 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-xl font-semibold text-gray-800">Comments</h2>
-
-            {{-- Quick stats --}}
-            <div class="flex gap-3 text-xs">
-                <span class="px-3 py-1 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full">
-                    Pending: {{ \App\Models\Comment::pending()->count() }}
-                </span>
-                <span class="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">
-                    Approved: {{ \App\Models\Comment::approved()->count() }}
-                </span>
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Comments</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
             </div>
         </div>
     </x-slot>
@@ -27,6 +20,16 @@
                 {{ session('success') }}
             </div>
         @endif
+
+        {{-- Quick stats --}}
+        <div class="mb-4 flex gap-3 text-xs items-center flex-wrap">
+            <span class="px-3 py-1 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full">
+                Pending: {{ \App\Models\Comment::pending()->count() }}
+            </span>
+            <span class="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">
+                Approved: {{ \App\Models\Comment::approved()->count() }}
+            </span>
+        </div>
 
         {{-- Filters --}}
         <form method="GET" action="{{ route('admin.comments.index') }}"
@@ -107,8 +110,7 @@
                         {{-- Approval Toggle --}}
                         <td class="px-5 py-4">
                             <button
-                                type="button"
-                                class="approve-btn px-2 py-1 rounded-full text-xs font-medium transition
+                                type="button" class="approve-btn px-2 py-1 rounded-full text-xs font-medium transition
                                         {{ $comment->is_approved
                                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                             : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' }}"
@@ -176,6 +178,8 @@
                         });
 
                         const data = await response.json();
+
+                        console.log(data);
 
                         if (data.success) {
                             const isApproved = data.is_approved;

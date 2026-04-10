@@ -6,10 +6,12 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-xl font-semibold text-gray-800">Users</h2>
-            <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                Admin access only
-            </span>
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }} -
+                    <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">Admin access only</span>
+                </p>
+            </div>
         </div>
     </x-slot>
 

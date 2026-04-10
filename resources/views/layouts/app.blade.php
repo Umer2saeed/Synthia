@@ -278,7 +278,16 @@
             </button>
 
             {{-- Page Title --}}
-            <h1 class="text-base font-semibold text-gray-800">{{ $title ?? 'Dashboard' }}</h1>
+{{--            <h1 class="text-base font-semibold text-gray-800">{{ $title ?? 'Dashboard' }}</h1>--}}
+
+            {{-- Page Title / Header Slot --}}
+            <div class="flex-1">
+                @if (isset($header))
+                    {{ $header }}
+                @else
+                    <h1 class="text-base font-semibold text-gray-800">{{ $title ?? 'Dashboard' }}</h1>
+                @endif
+            </div>
 
             <div class="flex-1"></div>
 

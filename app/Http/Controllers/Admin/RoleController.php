@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreRoleRequest;
+use App\Http\Requests\Admin\UpdateRoleRequest;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
@@ -10,11 +12,6 @@ use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | index() — List all roles with permission counts
-    |--------------------------------------------------------------------------
-    */
     public function index()
     {
         $this->authorizeManage();
@@ -26,11 +23,6 @@ class RoleController extends Controller
         return view('admin.roles.index', compact('roles'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | create() — Show form to create a new role
-    |--------------------------------------------------------------------------
-    */
     public function create()
     {
         $this->authorizeManage();
@@ -40,29 +32,12 @@ class RoleController extends Controller
         return view('admin.roles.create', compact('permissions'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | store() — Save new role and sync its permissions
-    |--------------------------------------------------------------------------
-    */
-    public function store(Request $request)
+    public function store(StoreRoleRequest $request)
     {
-        $this->authorizeManage();
-
-        $validated = $request->validate([
-            'name'          => 'required|string|max:100|unique:roles,name',
-            'permissions'   => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id',
-        ]);
-
-        $role = Role::create(['name' => $validated['name']]);
+        $validated = $request->validated();
+        $role      = Role::create(['name' => $validated['name']]);
 
         if (!empty($validated['permissions'])) {
-            /*
-            | Resolve IDs to Permission model instances.
-            | Spatie requires models or names — not raw IDs.
-            | This prevents the "no permission named 8" error.
-            */
             $permissionModels = Permission::whereIn('id', $validated['permissions'])->get();
             $role->syncPermissions($permissionModels);
         }
@@ -71,21 +46,11 @@ class RoleController extends Controller
             ->with('success', "Role '{$role->name}' created successfully.");
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | show() — Not used, redirect to index
-    |--------------------------------------------------------------------------
-    */
     public function show(Role $role)
     {
         return redirect()->route('admin.roles.index');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | edit() — Show edit form pre-filled with current permissions
-    |--------------------------------------------------------------------------
-    */
     public function edit(Role $role)
     {
         $this->authorizeManage();
@@ -96,29 +61,10 @@ class RoleController extends Controller
         return view('admin.roles.edit', compact('role', 'permissions', 'rolePermissions'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | update() — Rename role and re-sync permissions
-    |--------------------------------------------------------------------------
-    */
-    public function update(Request $request, Role $role)
+    public function update(UpdateRoleRequest $request, Role $role)
     {
-        $this->authorizeManage();
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'name'          => ['required', 'string', 'max:100',
-                Rule::unique('roles', 'name')->ignore($role->id)],
-            'permissions'   => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id',
-        ]);
-
-        /*
-        |----------------------------------------------------------------------
-        | Guard: cannot rename the admin role
-        |----------------------------------------------------------------------
-        | The admin role is the foundation of the entire permission system.
-        | Renaming it would break all role checks silently.
-        */
         if ($role->name === 'admin' && $validated['name'] !== 'admin') {
             return redirect()->route('admin.roles.edit', $role)
                 ->with('error', 'The admin role name cannot be changed.');

@@ -1,47 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-xl font-semibold text-gray-800">Posts</h2>
-            <div class="flex items-center gap-3">
-
-                {{-- Trash link — shows count of trashed posts --}}
-                @php
-                    $trashedCount = auth()->user()->can('delete all posts')
-                        ? \App\Models\Post::onlyTrashed()->count()
-                        : \App\Models\Post::onlyTrashed()->where('user_id', auth()->id())->count();
-                @endphp
-
-                @if($trashedCount > 0)
-                    <a href="{{ route('admin.posts.trash') }}"
-                       class="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600
-                          bg-red-50 border border-red-200 rounded-lg
-                          hover:bg-red-100 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Trash ({{ $trashedCount }})
-                    </a>
-                @else
-                    <a href="{{ route('admin.posts.trash') }}"
-                       class="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500
-                          bg-gray-50 border border-gray-200 rounded-lg
-                          hover:bg-gray-100 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Trash
-                    </a>
-                @endif
-
-                @can('create posts')
-                    <a href="{{ route('admin.posts.create') }}"
-                       class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg
-                          hover:bg-indigo-700 transition">
-                        + New Post
-                    </a>
-                @endcan
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Posts</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
             </div>
         </div>
     </x-slot>
@@ -86,10 +48,47 @@
         </form>
 
         <div class="flex justify-end mb-2">
-            <a href="{{ route('admin.posts.create') }}"
-               class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-                Create Post
-            </a>
+            <div class="flex items-center gap-3">
+
+                {{-- Trash link — shows count of trashed posts --}}
+                @php
+                    $trashedCount = auth()->user()->can('delete all posts')
+                        ? \App\Models\Post::onlyTrashed()->count()
+                        : \App\Models\Post::onlyTrashed()->where('user_id', auth()->id())->count();
+                @endphp
+
+                @if($trashedCount > 0)
+                    <a href="{{ route('admin.posts.trash') }}"
+                       class="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600
+                          bg-red-50 border border-red-200 rounded-lg
+                          hover:bg-red-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Trash ({{ $trashedCount }})
+                    </a>
+                @else
+                    <a href="{{ route('admin.posts.trash') }}"
+                       class="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500
+                          bg-gray-50 border border-gray-200 rounded-lg
+                          hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Trash
+                    </a>
+                @endif
+
+                @can('create posts')
+                    <a href="{{ route('admin.posts.create') }}"
+                       class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg
+                          hover:bg-indigo-700 transition">
+                        + New Post
+                    </a>
+                @endcan
+            </div>
         </div>
 
         {{-- Posts Table --}}

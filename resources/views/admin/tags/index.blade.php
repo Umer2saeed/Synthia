@@ -1,18 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-800">Tags</h2>
-
-            {{--
-            | Only admin and editor have 'manage categories'.
-            | Author sees the list but has no create button.
-            --}}
-            @can('manage categories')
-                <a href="{{ route('admin.tags.create') }}"
-                   class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
-                    + New Tag
-                </a>
-            @endcan
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Tags</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
+            </div>
         </div>
     </x-slot>
 
@@ -23,6 +15,17 @@
                 {{ session('success') }}
             </div>
         @endif
+
+            <div class="flex justify-end mb-2">
+                <div class="flex items-center gap-3">
+                    @can('manage categories')
+                        <a href="{{ route('admin.tags.create') }}"
+                           class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                            + New Tag
+                        </a>
+                    @endcan
+                </div>
+            </div>
 
         <div class="bg-white shadow rounded-xl overflow-hidden">
             <table class="w-full text-sm text-left">

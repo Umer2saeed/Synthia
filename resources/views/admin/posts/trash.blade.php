@@ -3,17 +3,11 @@
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Trash</h2>
-                <p class="text-xs text-gray-400 mt-0.5">
-                    Soft-deleted posts. Restore or permanently delete them.
-                </p>
+                <p class="text-xs text-gray-400 mt-0.5">Soft-deleted posts. Restore or permanently delete them.</p>
             </div>
-            <a href="{{ route('admin.posts.index') }}"
-               class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700
-                      text-sm rounded-lg hover:bg-gray-200 transition">
-                ← Back to Posts
-            </a>
         </div>
     </x-slot>
+
 
     <div class="py-8 max-w-7xl mx-auto px-4">
 
@@ -60,6 +54,16 @@
                    class="text-sm text-red-500 hover:underline">Clear</a>
             @endif
         </form>
+
+        <div class="flex justify-end mb-2">
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.posts.index') }}"
+                   class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700
+                              text-sm rounded-lg hover:bg-gray-200 transition">
+                    ← Back to Posts
+                </a>
+            </div>
+        </div>
 
         {{-- Trashed Posts Table --}}
         <div class="bg-white shadow rounded-xl overflow-hidden">

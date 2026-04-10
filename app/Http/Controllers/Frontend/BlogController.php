@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Frontend\StoreCommentRequest;
 use App\Models\Clap;
 use App\Services\PostSearchService;
 use App\Traits\HasSeoMeta;
@@ -182,19 +183,14 @@ class BlogController extends Controller
     /*
     | storeComment() and destroyComment() unchanged — no SEO needed
     */
-    public function storeComment(Request $request): JsonResponse
+    public function storeComment(StoreCommentRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-            'content' => 'required|string|min:3|max:1000',
-        ]);
-
-        $post = Post::published()->findOrFail($validated['post_id']);
+        $post = Post::published()->findOrFail($request->validated()['post_id']);
 
         $comment = Comment::create([
             'user_id'     => auth()->id(),
             'post_id'     => $post->id,
-            'content'     => $validated['content'],
+            'content'     => $request->validated()['content'],
             'is_approved' => true,
         ]);
 

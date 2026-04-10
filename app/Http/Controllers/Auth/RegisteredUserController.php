@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendWelcomeEmailJob;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -44,8 +45,16 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        // Dispatch the welcome email job to the queue
+        SendWelcomeEmailJob::dispatch($user);
+
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Correct — readers go home, others go to admin dashboard
+        if ($user->hasRole('reader') || !$user->can('access admin panel')) {
+            return redirect()->route('home');
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 }

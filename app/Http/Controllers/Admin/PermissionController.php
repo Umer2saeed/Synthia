@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StorePermissionRequest;
+use App\Http\Requests\Admin\UpdatePermissionRequest;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
@@ -10,11 +12,6 @@ use Illuminate\Validation\Rule;
 
 class PermissionController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | index() — List all permissions with role counts
-    |--------------------------------------------------------------------------
-    */
     public function index()
     {
         $this->authorizeManage();
@@ -26,11 +23,6 @@ class PermissionController extends Controller
         return view('admin.permissions.index', compact('permissions'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | create() — Show create form
-    |--------------------------------------------------------------------------
-    */
     public function create()
     {
         $this->authorizeManage();
@@ -38,40 +30,19 @@ class PermissionController extends Controller
         return view('admin.permissions.create');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | store() — Save new permission
-    |--------------------------------------------------------------------------
-    */
-    public function store(Request $request)
+    public function store(StorePermissionRequest $request)
     {
-        $this->authorizeManage();
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:100|unique:permissions,name',
-        ]);
-
-        Permission::create(['name' => $validated['name']]);
+        Permission::create($request->validated());
 
         return redirect()->route('admin.permissions.index')
-            ->with('success', "Permission '{$validated['name']}' created.");
+            ->with('success', "Permission created.");
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | show() — Not used, redirect to index
-    |--------------------------------------------------------------------------
-    */
     public function show(Permission $permission)
     {
         return redirect()->route('admin.permissions.index');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | edit() — Show edit form
-    |--------------------------------------------------------------------------
-    */
     public function edit(Permission $permission)
     {
         $this->authorizeManage();
@@ -79,64 +50,30 @@ class PermissionController extends Controller
         return view('admin.permissions.edit', compact('permission'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | update() — Update permission name
-    |--------------------------------------------------------------------------
-    */
-    public function update(Request $request, Permission $permission)
+    public function update(UpdatePermissionRequest $request, Permission $permission)
     {
-        $this->authorizeManage();
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100',
-                Rule::unique('permissions', 'name')->ignore($permission->id)],
-        ]);
-
-        /*
-        |----------------------------------------------------------------------
-        | Guard: protect core system permissions from being renamed
-        |----------------------------------------------------------------------
-        | These permissions are hardcoded in middleware, seeders, and blade
-        | files. Renaming them silently breaks the entire permission system.
-        */
         $corePermissions = [
-            'access admin panel',
-            'manage users',
-            'manage roles',
-            'manage categories',
-            'create posts',
-            'edit own posts',
-            'edit all posts',
-            'delete own posts',
-            'delete all posts',
-            'publish posts',
-            'view posts',
-            'view categories',
-            'view comments',
-            'create comments',
-            'delete comments',
+            'access admin panel', 'manage users', 'manage roles',
+            'manage categories', 'create posts', 'edit own posts',
+            'edit all posts', 'delete own posts', 'delete all posts',
+            'publish posts', 'view posts', 'view categories',
+            'view comments', 'create comments', 'delete comments',
         ];
+
+        $validated = $request->validated();
 
         if (in_array($permission->name, $corePermissions) &&
             $validated['name'] !== $permission->name) {
             return redirect()->route('admin.permissions.edit', $permission)
-                ->with('error', "'{$permission->name}' is a core system permission and cannot be renamed.");
+                ->with('error', "'{$permission->name}' is a core permission and cannot be renamed.");
         }
 
-        $permission->update(['name' => $validated['name']]);
+        $permission->update($validated);
 
         return redirect()->route('admin.permissions.index')
-            ->with('success', 'Permission updated successfully.');
+            ->with('success', 'Permission updated.');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | destroy() — Delete a permission
-    |--------------------------------------------------------------------------
-    | Guard: core permissions cannot be deleted.
-    | Deleting them would silently break role checks across the app.
-    */
     public function destroy(Permission $permission)
     {
         $this->authorizeManage();

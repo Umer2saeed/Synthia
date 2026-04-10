@@ -3,18 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 
 class UserRoleController extends Controller
 {
-
-    /*
-    |--------------------------------------------------------------------------
-    | edit() — Show role assignment form for a user
-    |--------------------------------------------------------------------------
-    */
     public function edit(User $user)
     {
         $this->authorizeManage();
@@ -25,47 +20,31 @@ class UserRoleController extends Controller
         return view('admin.users.roles', compact('user', 'roles', 'userRoles'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | update() — Sync user roles
-    |--------------------------------------------------------------------------
-    */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
         $this->authorizeManage();
 
-        $validated = $request->validate([
-            'roles'   => 'nullable|array',
-            'roles.*' => 'exists:roles,id',
-        ]);
+        $validated = $request->validated();
 
-        /*
-        |----------------------------------------------------------------------
-        | Guard: cannot remove own admin role
-        |----------------------------------------------------------------------
-        */
-        if ($user->id === auth()->id()) {
-            $selectedRoleIds = $validated['roles'] ?? [];
-            $adminRole       = Role::where('name', 'admin')->first();
-
-            if ($adminRole && !in_array($adminRole->id, $selectedRoleIds)) {
-                return redirect()->back()
-                    ->with('error', 'You cannot remove your own admin role.');
-            }
+        if ($request->hasFile('avatar')) {
+            $user->deleteAvatar();
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        } else {
+            unset($validated['avatar']);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | syncRoles() with model instances
-        |----------------------------------------------------------------------
-        | We pass IDs — Spatie resolves them to Permission models.
-        | Using model instances avoids the "permission named 8" bug.
-        */
-        $roleModels = Role::whereIn('id', $validated['roles'] ?? [])->get();
-        $user->syncRoles($roleModels);
+        $user->update($validated);
 
-        return redirect()->back()
-            ->with('success', "Roles updated for {$user->name}.");
+        if ($request->has('roles')) {
+            if ($user->id === auth()->id() && !in_array('admin', $request->input('roles', []))) {
+                return redirect()->route('admin.users.edit', $user)
+                    ->with('error', 'You cannot remove your own admin role.');
+            }
+            $user->syncRoles($request->input('roles', []));
+        }
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "User '{$user->name}' updated successfully.");
     }
 
     // ADD this private method
