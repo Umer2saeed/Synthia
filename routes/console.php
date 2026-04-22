@@ -21,3 +21,5 @@ Schedule::command('posts:publish-scheduled')->everyMinute()->withoutOverlapping(
 
 // Queue Monitor - Every 5 minutes
 Schedule::command('queue:monitor-synthia')->everyFiveMinutes()->runInBackground()->appendOutputTo(storage_path('logs/queue-monitor.log'));
+
+Schedule::command('digest:send-weekly')->weeklyOn(1, '09:00')->withoutOverlapping()->runInBackground();

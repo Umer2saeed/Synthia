@@ -168,7 +168,7 @@
                     const commentId = this.dataset.commentId;
 
                     try {
-                        const response = await fetch(`/comments/${commentId}/approve`, {
+                        const response = await fetch(`/admin/comments/${commentId}/approve`, {
                             method:  'PATCH',
                             headers: {
                                 'X-CSRF-TOKEN':     csrfToken,

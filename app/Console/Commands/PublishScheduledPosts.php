@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendPostPublishedNotificationJob;
 use App\Models\Post;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -118,6 +119,26 @@ class PublishScheduledPosts extends Command
                     'published_at' => $post->published_at,
                     'author_id'    => $post->user_id,
                 ]);
+
+                /*
+                |--------------------------------------------------------------
+                | Task 11: Notify the post author
+                |--------------------------------------------------------------
+                | We reload the post with fresh() to ensure the status field
+                | reflects the just-updated 'published' value.
+                |
+                | Unlike Task 10, we always send the email here regardless
+                | of who created the post. Scheduled publishing happens
+                | automatically with no human actor — the author needs
+                | to know their post went live on its own.
+                |
+                | We use dispatch() so the command stays fast even when
+                | publishing many posts at once. All emails go to the queue
+                | and are processed after the command finishes.
+                |--------------------------------------------------------------
+                */
+                SendPostPublishedNotificationJob::dispatch($post->fresh());
+
 
             } catch (\Exception $e) {
                 $failedCount++;

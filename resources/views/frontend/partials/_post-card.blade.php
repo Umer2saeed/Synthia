@@ -9,7 +9,8 @@
 
     {{-- Bookmark indicator badge (top right corner) --}}
     @auth
-        @if($post->isBookmarkedBy(auth()->user()))
+{{--        @if($post->isBookmarkedBy(auth()->user()))--}}
+        @if(($post->bookmarks_count ?? 0) > 0)
             <div class="absolute top-3 right-3 z-10">
                 <span class="flex items-center justify-center w-7 h-7 rounded-full
                              bg-indigo-600 text-white shadow-md"
@@ -94,7 +95,9 @@
                 @if($postClaps > 0)
                     <span>·</span>
                     <span class="flex items-center gap-0.5">
-                👏 {{ number_format($postClaps) }}
+{{--                👏 {{ number_format($postClaps) }}--}}
+                👏 {{ number_format($post->claps_count ?? 0) }}
+                👏 {{ number_format($post->claps_count ?? 0) }}
             </span>
                 @endif
             </div>

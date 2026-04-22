@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendCommentApprovedNotificationJob;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -23,12 +24,20 @@ class CommentController extends Controller
         $query = Comment::with(['user', 'post'])->latest();
 
         // Filter by approval status: ?status=pending or ?status=approved
+//        if ($request->filled('status')) {
+//            $query->where(
+//                'is_approved',
+//                $request->status === 'approved' ? true : false
+//            );
+//        }
         if ($request->filled('status')) {
-            $query->where(
-                'is_approved',
-                $request->status === 'approved' ? true : false
-            );
+            if ($request->status === 'pending') {
+                $query->where('is_approved', false);
+            } elseif ($request->status === 'approved') {
+                $query->where('is_approved', true);
+            }
         }
+
 
         // Search by comment content
         if ($request->filled('search')) {
@@ -70,9 +79,25 @@ class CommentController extends Controller
     {
         $this->authorizeManage();
 
+        /*
+        | Capture previous state before toggling.
+        | We only send the approval email when:
+        |   - The comment JUST became approved (was false, now true)
+        |   - NOT when it was unapproved (was true, now false)
+        */
+        $wasApproved = $comment->is_approved;
+
         $comment->update([
             'is_approved' => !$comment->is_approved,
         ]);
+
+        /*
+        | Only dispatch if approval state changed FROM false TO true.
+        | If admin is unapproving a comment, no email needed.
+        */
+        if (!$wasApproved && $comment->is_approved) {
+            SendCommentApprovedNotificationJob::dispatch($comment->fresh());
+        }
 
         return response()->json([
             'success'     => true,

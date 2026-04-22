@@ -4,9 +4,21 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-800">User Profile</h2>
-            <div class="flex gap-2">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">User Profile</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }} -
+                </p>
+            </div>
+        </div>
+    </x-slot>
+
+
+    <div class="py-8 max-w-4xl mx-auto px-4">
+
+        <div class="flex justify-between">
+
+            <div class="flex gap-2 mb-4">
 
                 <a href="{{ route('admin.users.edit', $user) }}"
                    class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
@@ -32,15 +44,18 @@
                     </form>
                 @endif
 
+            </div>
+
+            <div class="flex gap-2 mb-4">
                 <a href="{{ route('admin.users.index') }}"
-                   class="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">
+                   class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700
+                              text-sm rounded-lg hover:bg-gray-200 transition">
                     ← Back
                 </a>
             </div>
-        </div>
-    </x-slot>
 
-    <div class="py-8 max-w-4xl mx-auto px-4">
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {{-- LEFT: Avatar + Identity --}}

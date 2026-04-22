@@ -7,7 +7,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
-                <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                <h2 class="text-xl font-semibold text-gray-800">Users</h2>
                 <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }} -
                     <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">Admin access only</span>
                 </p>
@@ -88,8 +88,7 @@
                         {{-- Avatar + Name + Email --}}
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-3">
-                                <img src="{{ $user->avatar_url }}"
-                                     alt="{{ $user->name }}"
+                                <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}"
                                      class="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0">
                                 <div>
                                     <div class="font-medium text-gray-800">{{ $user->name }}</div>

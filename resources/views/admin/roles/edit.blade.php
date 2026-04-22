@@ -4,10 +4,15 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-gray-800">
-            Edit Role: {{ ucfirst($role->name) }}
-        </h2>
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Edit Role: {{ ucfirst($role->name) }}</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}
+                </p>
+            </div>
+        </div>
     </x-slot>
+
 
     <div class="py-8 max-w-3xl mx-auto px-4">
 

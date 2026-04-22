@@ -32,22 +32,23 @@ Route::get('/tag/{slug}',               [TagPageController::class,      'show'])
 
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 
-//  Comments routes
-Route::middleware(['auth'])->group(function () {
-    Route::post('/comments',             [BlogController::class, 'storeComment'])->name('comments.store');
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Comments
+    Route::post('/comments', [BlogController::class, 'storeComment'])->name('comments.store');
     Route::delete('/comments/{comment}', [BlogController::class, 'destroyComment'])->name('comments.destroy');
 
-    // Clap Routes
+    // Claps
     Route::post('/posts/{post}/clap', [ClapController::class, 'clap'])->name('posts.clap');
 
-    // Bookmark Routes
+    // Bookmarks
     Route::post('/bookmarks',  [BookmarkController::class, 'toggle'])->name('bookmarks.toggle');
-    Route::get('/bookmarks',   [BookmarkController::class, 'index'])->name('bookmarks.index');
+    Route::get('/bookmarks', [BookmarkController::class, 'index'])->name('bookmarks.index');
 
-    // Follow Routes
+    // Follows
     Route::post('/authors/{author}/follow', [FollowController::class, 'toggle'])->name('authors.follow');
-    Route::get('/following',                [FollowController::class, 'following'])->name('following.index');
-    Route::get('/followers',                [FollowController::class, 'followers'])->name('followers.index');
+    Route::get('/following', [FollowController::class, 'following'])->name('following.index');
+    Route::get('/followers', [FollowController::class, 'followers'])->name('followers.index');
+
 });
 
 Route::middleware(['auth'])->name('frontend.')->group(function () {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Frontend;
 
+use App\Services\SanitizationService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCommentRequest extends FormRequest
@@ -33,5 +34,21 @@ class StoreCommentRequest extends FormRequest
             'content.max'      => 'Comment cannot exceed 1000 characters.',
             'post_id.exists'   => 'The post you are commenting on does not exist.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $sanitizer = app(SanitizationService::class);
+
+        $this->merge([
+            /*
+            | Comments allow minimal HTML (bold, italic, links, code).
+            | We use cleanComment() not cleanText() so readers can still
+            | format their comments slightly.
+            |
+            | If you prefer comments to be plain text only, use cleanText().
+            */
+            'post_content' => $sanitizer->cleanComment($this->content),
+        ]);
     }
 }

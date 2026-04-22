@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Jobs\OptimizeAvatarJob;
+use App\Jobs\SendAccountStatusChangedJob;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +25,7 @@ class UserController extends Controller
         $this->authorizeManage();
 
         $query = User::with('roles')
-            ->withCount('posts')
+            ->withCount('posts', 'comments')
             ->latest();
 
         // Filter by role: ?role=editor
@@ -85,31 +88,12 @@ class UserController extends Controller
     | update() — Validate and update user
     |--------------------------------------------------------------------------
     */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
         $this->authorizeManage();
 
-        $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'username' => [
-                'nullable',
-                'string',
-                'max:50',
-                'alpha_dash',
-                Rule::unique('users', 'username')->ignore($user->id),
-            ],
-            'email'  => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
-            'bio'    => 'nullable|string|max:300',
-            'status' => 'required|in:active,inactive',
-            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        $validated = $request->validated();
 
-        // Handle avatar upload
         if ($request->hasFile('avatar')) {
             $user->deleteAvatar();
             $validated['avatar'] = $request->file('avatar')
@@ -120,30 +104,17 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        /*
-        |----------------------------------------------------------------------
-        | Sync roles if provided
-        |----------------------------------------------------------------------
-        | syncRoles() removes existing roles and assigns the new selection.
-        | We pass role names directly from the checkbox values.
-        | Guard: cannot remove admin role from yourself.
-        */
+        // Dispatch avatar optimization
+        if ($request->hasFile('avatar') && !empty($validated['avatar'])) {
+            OptimizeAvatarJob::dispatch($user->fresh(), $validated['avatar']);
+        }
+
         if ($request->has('roles')) {
             if ($user->id === auth()->id() && !in_array('admin', $request->input('roles', []))) {
                 return redirect()->route('admin.users.edit', $user)
                     ->with('error', 'You cannot remove your own admin role.');
             }
             $user->syncRoles($request->input('roles', []));
-        } else {
-            /*
-            | If no roles checkbox was checked at all, syncRoles with empty
-            | array — but guard against removing own admin role.
-            */
-            if ($user->id === auth()->id()) {
-                return redirect()->route('admin.users.edit', $user)
-                    ->with('error', 'You cannot remove your own admin role.');
-            }
-            $user->syncRoles([]);
         }
 
         return redirect()->route('admin.users.index')
@@ -195,19 +166,23 @@ class UserController extends Controller
     {
         $this->authorizeManage();
 
+        // Guard: cannot change your own status
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot change your own status.');
         }
 
-        if ($user->hasRole('admin') && $user->id !== auth()->id()) {
-            return back()->with('error', 'You cannot deactivate another administrator.');
+        // Guard: cannot toggle another admin's status
+        if ($user->hasRole('admin')) {
+            return back()->with('error', 'You cannot change an administrator\'s status.');
         }
 
-        $user->update([
-            'status' => $user->status === 'active' ? 'inactive' : 'active',
-        ]);
+        $newStatus = $user->status === 'active' ? 'inactive' : 'active';
 
-        return back()->with('success', "User status updated to {$user->status}.");
+        $user->update(['status' => $newStatus]);
+
+        SendAccountStatusChangedJob::dispatch($user->fresh(), $newStatus);
+
+        return back()->with('success', "User status updated to {$newStatus}.");
     }
 
     /*

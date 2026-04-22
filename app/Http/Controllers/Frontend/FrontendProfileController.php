@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdatePasswordRequest;
 use App\Http\Requests\Frontend\UpdateFrontendProfileRequest;
+use App\Jobs\OptimizeAvatarJob;
 use App\Traits\HasSeoMeta;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -83,6 +84,11 @@ class FrontendProfileController extends Controller
         }
 
         $user->update($validated);
+
+        // Dispatch avatar optimization if new avatar was uploaded
+        if ($request->hasFile('avatar') && !empty($validated['avatar'])) {
+            OptimizeAvatarJob::dispatch($user->fresh(), $validated['avatar']);
+        }
 
         return redirect()->route('frontend.profile.show')
             ->with('success', 'Profile updated successfully.');

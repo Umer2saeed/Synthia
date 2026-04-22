@@ -11,6 +11,39 @@
     <section class="bg-gradient-to-br from-indigo-50 via-white to-purple-50
                 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950
                 border-b border-gray-100 dark:border-gray-800">
+
+        {{-- Welcome flash message --}}
+        @if(session('success'))
+            <div x-data="{ show: true }"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-init="setTimeout(() => show = false, 5000)"
+                 class="max-w-7xl mx-auto px-4 sm:px-6 pt-2">
+                <div class="flex items-center justify-between gap-4 px-4 py-3
+                    bg-green-50 dark:bg-green-950
+                    border border-green-200 dark:border-green-800
+                    text-green-700 dark:text-green-400
+                    text-sm rounded-xl">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ session('success') }}
+                    </div>
+                    <button @click="show = false"
+                            class="text-green-400 hover:text-green-600 transition-colors shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @endif
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-20">
             <div class="text-center max-w-3xl mx-auto mb-14">
             <span class="inline-block text-xs font-semibold text-indigo-600 dark:text-indigo-400

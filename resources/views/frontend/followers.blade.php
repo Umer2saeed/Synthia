@@ -72,7 +72,7 @@
                                     </a>
                                     @if($follower->username)
                                         <p class="text-xs text-gray-400 font-mono">
-                                            @{{ $follower->username }}
+                                            @ {{ $follower->username }}
                                         </p>
                                     @endif
                                 </div>

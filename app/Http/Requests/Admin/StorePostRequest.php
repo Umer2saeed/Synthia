@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\SanitizationService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePostRequest extends FormRequest
@@ -41,7 +42,7 @@ class StorePostRequest extends FormRequest
             'is_featured'  => ['nullable', 'boolean'],
             'ai_summary'   => ['nullable', 'string', 'max:500'],
             'published_at' => ['nullable', 'date'],
-            'cover_image'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'cover_image'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'tags'         => ['nullable', 'array'],
             'tags.*'       => ['exists:tags,id'],
         ];
@@ -67,24 +68,46 @@ class StorePostRequest extends FormRequest
         ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | prepareForValidation()
-    |--------------------------------------------------------------------------
-    | Runs BEFORE rules() are applied.
-    | Modify or clean input data before validation runs.
-    |
-    | Here we enforce the publish permission rule at the request level.
-    | If the user cannot publish, we force status to draft BEFORE
-    | the data even reaches the controller.
-    */
     protected function prepareForValidation(): void
     {
+        $sanitizer = app(\App\Services\SanitizationService::class);
+
+        $mergeData = [];
+
         /*
-        | If user cannot publish posts, override whatever status
-        | they submitted to 'draft'. This is a server-side guard
-        | on top of the UI hiding the status field for authors.
+        | Only sanitize fields that are actually present in the request.
+        | If a field is null or missing, we do not force it to empty string
+        | because that would break 'required' validation rules.
+        | We only sanitize when the field has a value.
         */
+        if ($this->has('title') && $this->title !== null) {
+            $mergeData['title'] = $sanitizer->cleanText($this->title);
+        }
+
+        if ($this->has('content') && $this->content !== null) {
+            $cleaned = $sanitizer->cleanRichText($this->content);
+
+            /*
+            | Only merge if the cleaned content is not empty.
+            | If cleanRichText returns empty for non-empty input,
+            | keep the original so validation can run on the raw value.
+            | The fallback in cleanRichText should prevent this,
+            | but this is an extra safety net.
+            */
+            if (trim($cleaned) !== '') {
+                $mergeData['content'] = $cleaned;
+            }
+        }
+
+        if ($this->has('ai_summary') && $this->ai_summary !== null) {
+            $mergeData['ai_summary'] = $sanitizer->cleanText($this->ai_summary);
+        }
+
+        if (!empty($mergeData)) {
+            $this->merge($mergeData);
+        }
+
+        // Permission enforcement
         if (!$this->user()->can('publish posts')) {
             $this->merge([
                 'status'      => 'draft',

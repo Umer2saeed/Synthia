@@ -94,35 +94,6 @@
         </div>
     @endif
 
-{{--    @if(session('success'))--}}
-{{--        <div x-data="{ show: true }"--}}
-{{--             x-show="show"--}}
-{{--             x-transition:enter="transition ease-out duration-300"--}}
-{{--             x-transition:enter-start="opacity-0 -translate-y-2"--}}
-{{--             x-transition:enter-end="opacity-100 translate-y-0"--}}
-{{--             x-transition:leave="transition ease-in duration-200"--}}
-{{--             x-transition:leave-start="opacity-100 translate-y-0"--}}
-{{--             x-transition:leave-end="opacity-0 -translate-y-2"--}}
-{{--             class="max-w-7xl mx-auto px-4 sm:px-6 mt-4">--}}
-{{--            <div class="flex items-center justify-between gap-4 px-4 py-3--}}
-{{--                    bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800--}}
-{{--                    text-green-700 dark:text-green-400 text-sm rounded-xl">--}}
-{{--                <div class="flex items-center gap-2">--}}
-{{--                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">--}}
-{{--                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"--}}
-{{--                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>--}}
-{{--                    </svg>--}}
-{{--                    {{ session('success') }}--}}
-{{--                </div>--}}
-{{--                <button @click="show = false" class="text-green-400 hover:text-green-600 transition-colors shrink-0">--}}
-{{--                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">--}}
-{{--                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>--}}
-{{--                    </svg>--}}
-{{--                </button>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-{{--    @endif--}}
-
     @yield('content')
 </main>
 

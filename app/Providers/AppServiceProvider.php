@@ -2,13 +2,24 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use App\Models\Category;
+use App\Models\Post;
+use App\Models\Tag;
+use App\Observers\CategoryObserver;
+use App\Observers\PostObserver;
+use App\Observers\TagObserver;
+use App\Services\ImageOptimizationService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\ServiceProvider;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -16,7 +27,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Input Sanitization Service
+        $this->app->singleton(\App\Services\SanitizationService::class);
+        // CacheService
+        $this->app->singleton(\App\Services\CacheService::class);
+
+        $this->app->singleton(ImageManager::class, function () {
+            return new ImageManager(new GdDriver());
+        });
+
+        // Register our services as singletons
+        $this->app->singleton(ImageOptimizationService::class);
     }
 
     /**
@@ -24,38 +45,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Paginator::useTailwind();
+        // Prevent Lazy Loading in Development
+        Model::preventLazyLoading(!app()->isProduction());
 
-        /*
-        |----------------------------------------------------------------------
-        | Set Tailwind CSS as the default pagination view
-        |----------------------------------------------------------------------
-        | By default Laravel uses Bootstrap pagination. This switches it to
-        | the Tailwind view we published above so all paginator calls across
-        | the entire app — admin panel and frontend — use the same styling.
-        |
-        | This means every ->paginate() call automatically uses this view
-        | without needing to call ->links('vendor.pagination.tailwind')
-        | manually on each page.
-        */
+        // Paginator
+        Paginator::useTailwind();
         Paginator::defaultView('vendor.pagination.tailwind');
         Paginator::defaultSimpleView('vendor.pagination.simple-tailwind');
 
-        /*
-        |----------------------------------------------------------------------
-        | Queue Event Listeners
-        |----------------------------------------------------------------------
-        | These listeners fire on queue events and write to the log file.
-        | This gives you visibility into what the queue worker is doing
-        | without having to watch the terminal output.
-        |
-        | Logs appear in: storage/logs/laravel.log
-        */
 
-        /*
-        | Fired just BEFORE a job starts processing.
-        | Useful for knowing which job the worker picked up.
-        */
+       // Register Email Layout as a Blade Component
+        Blade::anonymousComponentPath(resource_path('views/emails'), 'emails');
+
+        // Observers
+        Post::observe(PostObserver::class);
+        Category::observe(CategoryObserver::class);
+        Tag::observe(TagObserver::class);
+
+        // Queues
         Queue::before(function (JobProcessing $event) {
             Log::info('Queue: job starting', [
                 'job'        => $event->job->resolveName(),
@@ -64,10 +71,6 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        /*
-        | Fired just AFTER a job completes successfully.
-        | Useful for confirming jobs are completing.
-        */
         Queue::after(function (JobProcessed $event) {
             Log::info('Queue: job completed', [
                 'job'   => $event->job->resolveName(),
@@ -75,10 +78,6 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        /*
-        | Fired when a job fails after exhausting all retries.
-        | This is where you would send an alert to yourself in production.
-        */
         Queue::failing(function (JobFailed $event) {
             Log::error('Queue: job failed permanently', [
                 'job'       => $event->job->resolveName(),

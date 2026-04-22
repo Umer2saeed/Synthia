@@ -400,8 +400,8 @@
                 </div>
 
                 @php
-                    // Max posts across all top categories — used for progress bar width
-                    $maxCatPosts = $topCategories->max('posts_count') ?: 1;
+//                    $maxCatPosts = collect($topCategories)->max('posts_count') ?: 1;
+                    $maxCatPosts = !empty($topCategories) ? max(array_column($topCategories, 'posts_count')) : 1;
                 @endphp
 
                 <div class="space-y-3">
@@ -409,15 +409,15 @@
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-xs font-medium text-gray-700 truncate max-w-[70%]">
-                                    {{ $category->name }}
+                                    {{ $category['name'] }}
                                 </span>
                                 <span class="text-xs text-gray-500 font-semibold">
-                                    {{ $category->posts_count }}
+                                    {{ $category['posts_count'] }}
                                 </span>
                             </div>
                             <div class="w-full bg-gray-100 rounded-full h-1.5">
                                 <div class="h-1.5 rounded-full bg-indigo-400 transition-all duration-500"
-                                     style="width: {{ round(($category->posts_count / $maxCatPosts) * 100) }}%">
+                                     style="width: {{ round(($category['posts_count'] / $maxCatPosts) * 100) }}%">
                                 </div>
                             </div>
                         </div>
@@ -435,27 +435,23 @@
                        class="text-xs text-indigo-600 hover:underline">View all</a>
                 </div>
 
-                @if($topTags->isEmpty())
+                @if(empty($topTags))
                     <p class="text-sm text-gray-400 text-center py-4">No tags yet.</p>
                 @else
                     {{-- Tag cloud — size based on post count --}}
                     <div class="flex flex-wrap gap-2">
                         @foreach($topTags as $tag)
                             @php
-                                /*
-                                | Scale font size between 11px and 16px based on
-                                | how many posts this tag has relative to the top tag.
-                                | This creates a simple visual tag cloud effect.
-                                */
-                                $maxTagPosts = $topTags->max('posts_count') ?: 1;
-                                $ratio       = $tag->posts_count / $maxTagPosts;
-                                $fontSize    = round(11 + ($ratio * 5)); // 11px to 16px
+//                                $maxTagPosts = collect($topTags)->max('posts_count') ?: 1;
+                                $maxTagPosts = !empty($topTags) ? max(array_column($topTags, 'posts_count')) : 1;
+                                $ratio       = $tag['posts_count'] / $maxTagPosts;
+                                $fontSize    = round(11 + ($ratio * 5));
                             @endphp
                             <a href="{{ route('admin.tags.index') }}"
                                style="font-size: {{ $fontSize }}px"
                                class="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full font-medium hover:bg-indigo-100 transition"
-                               title="{{ $tag->posts_count }} {{ Str::plural('post', $tag->posts_count) }}">
-                                {{ $tag->name }}
+                               title="{{ $tag['posts_count'] }} {{ Str::plural('post', $tag['posts_count']) }}">
+                                {{ $tag['name'] }}
                             </a>
                         @endforeach
                     </div>

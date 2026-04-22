@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\SanitizationService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,5 +43,16 @@ class UpdateUserRequest extends FormRequest
             'username.unique'  => 'This username is already taken.',
             'avatar.max'       => 'Avatar must be smaller than 2MB.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $sanitizer = app(SanitizationService::class);
+
+        $this->merge([
+            'name'     => $sanitizer->cleanText($this->name),
+            'username' => $sanitizer->cleanUsername($this->username),
+            'bio'      => $sanitizer->cleanText($this->bio),
+        ]);
     }
 }

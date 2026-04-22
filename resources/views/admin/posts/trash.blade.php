@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Trash</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Soft-deleted posts. Restore or permanently delete them.</p>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
             </div>
         </div>
     </x-slot>

@@ -67,12 +67,7 @@
 
                         {{-- Bookmark Button (right side) --}}
                         @auth
-                            <button
-                                id="bookmark-btn"
-                                data-post-id="{{ $post->id }}"
-                                data-bookmarked="{{ $isBookmarked ? 'true' : 'false' }}"
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm
-                       font-medium border transition-all duration-200
+                            <button id="bookmark-btn" data-post-id="{{ $post->id }}" data-bookmarked="{{ $isBookmarked ? 'true' : 'false' }}" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all duration-200
                        {{ $isBookmarked
                            ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400' }}">
@@ -148,8 +143,20 @@
                     <div class="flex flex-col items-center gap-3">
 
                         {{-- Clap Button --}}
+
                         @auth
-                            @if($post->user_id !== auth()->id())
+                            @if(!auth()->user()->hasVerifiedEmail())
+                                {{-- Unverified — show read-only clap count with prompt --}}
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-3xl opacity-50">👏</span>
+                                    <p class="text-lg font-bold text-gray-800 dark:text-white">
+                                        {{ number_format($totalClaps) }}
+                                    </p>
+                                    <p class="text-xs text-gray-400 text-center">
+                                        Verify your email to clap
+                                    </p>
+                                </div>
+                            @elseif($post->user_id !== auth()->id())
                                 {{--
                                 | Logged-in user who does NOT own this post.
                                 | They can clap — button is active.
@@ -245,27 +252,21 @@
                                 </div>
                             @endif
 
-                        @else
+                            @else
                             {{--
                             | Guest — not logged in.
                             | Show the total claps and a prompt to log in to clap.
                             --}}
                             <div class="flex flex-col items-center gap-2">
                                 <a href="{{ route('login') }}"
-                                   class="w-16 h-16 rounded-full border-2 border-indigo-200 dark:border-indigo-800
-                          flex items-center justify-center text-2xl
-                          hover:bg-indigo-50 dark:hover:bg-indigo-950
-                          hover:border-indigo-400 transition-all duration-200">
+                                   class="w-16 h-16 rounded-full border-2 border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-2xl hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-400 transition-all duration-200">
                                     👏
                                 </a>
                                 <p class="text-lg font-bold text-gray-800 dark:text-white">
                                     {{ number_format($totalClaps) }}
                                 </p>
                                 <p class="text-xs text-gray-400">
-                                    <a href="{{ route('login') }}"
-                                       class="text-indigo-500 hover:underline">
-                                        Log in
-                                    </a>
+                                    <a href="{{ route('login') }}" class="text-indigo-500 hover:underline">Log in</a>
                                     to clap
                                 </p>
                             </div>
@@ -306,54 +307,73 @@
 
                     {{-- Comment Form --}}
                     @auth
-                        {{--
-                        | Any authenticated user can comment on the frontend.
-                        | No permission check needed here — all roles including
-                        | reader have the right to comment on public posts.
-                        | The route itself is protected only by auth middleware.
-                        --}}
-                        <form id="comment-form" class="mb-8" novalidate>
-                            @csrf
-                            <input type="hidden" name="post_id" value="{{ $post->id }}">
+                        @if(!auth()->user()->hasVerifiedEmail())
+                            {{--
+                            | Unverified user — show verification prompt instead of form.
+                            | Do not block them from reading the comments,
+                            | just prevent posting until verified.
+                            --}}
+                            <div class="mb-8 px-5 py-4 bg-amber-50 dark:bg-amber-950
+                            border border-amber-200 dark:border-amber-800
+                            rounded-2xl">
+                                <p class="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                                    ✉️ Verify your email to join the conversation
+                                </p>
+                                <p class="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                                    Please check your inbox and click the verification link we sent you.
+                                </p>
+                                <form method="POST" action="{{ route('verification.send') }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                            class="text-xs font-semibold text-amber-700 dark:text-amber-300
+                               underline hover:no-underline">
+                                        Resend verification email
+                                    </button>
+                                </form>
+                            </div>
+                        @else
+                            {{-- Verified user — show normal comment form --}}
+                            <form id="comment-form" class="mb-8" novalidate>
+                                @csrf
+                                <input type="hidden" name="post_id" value="{{ $post->id }}">
 
-                            <div class="flex gap-3">
-                                <img src="{{ auth()->user()->avatar_url }}"
-                                     alt="{{ auth()->user()->name }}"
-                                     class="w-9 h-9 rounded-full object-cover border-2 border-indigo-100 dark:border-gray-700 shrink-0 mt-1">
+                                <div class="flex gap-3">
+                                    <img src="{{ auth()->user()->avatar_url }}"
+                                         alt="{{ auth()->user()->name }}"
+                                         class="w-9 h-9 rounded-full object-cover border-2 border-indigo-100 dark:border-gray-700 shrink-0 mt-1">
 
-                                <div class="flex-1 space-y-3">
-                <textarea id="comment-content"
-                          name="content"
-                          rows="3"
-                          maxlength="1000"
-                          placeholder="Share your thoughts..."
-                          class="w-full border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3
-                                 text-sm bg-white dark:bg-gray-900
-                                 text-gray-700 dark:text-gray-300
-                                 placeholder-gray-400 dark:placeholder-gray-600
-                                 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-700
-                                 resize-none transition-all"></textarea>
+                                    <div class="flex-1 space-y-3">
+                                <textarea id="comment-content"
+                                          name="content"
+                                          rows="3"
+                                          maxlength="1000"
+                                          placeholder="Share your thoughts..."
+                                          class="w-full border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3
+                                         text-sm bg-white dark:bg-gray-900
+                                         text-gray-700 dark:text-gray-300
+                                         placeholder-gray-400 dark:placeholder-gray-600
+                                         focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-700
+                                         resize-none transition-all"></textarea>
 
-                                    <p id="comment-error" class="text-red-500 text-xs hidden"></p>
+                                        <p id="comment-error" class="text-red-500 text-xs hidden"></p>
 
-                                    <div class="flex items-center justify-between">
-                    <span class="text-xs text-gray-400">
-                        <span id="char-count">0</span>/1000
-                    </span>
-                                        <button type="submit"
-                                                id="comment-submit-btn"
-                                                class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white
-                                   text-sm font-medium rounded-xl transition-colors
-                                   disabled:opacity-50 disabled:cursor-not-allowed">
-                                            Post Comment
-                                        </button>
+                                        <div class="flex items-center justify-between">
+                                        <span class="text-xs text-gray-400">
+                                            <span id="char-count">0</span>/1000
+                                        </span>
+                                            <button type="submit"
+                                                    id="comment-submit-btn"
+                                                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                Post Comment
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        @endif
                     @else
-                        {{-- Guest prompt --}}
-                        <div class="mb-8 px-5 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                        <div class="mb-8 px-5 py-4 bg-gray-50 dark:bg-gray-900
+                        border border-gray-200 dark:border-gray-700 rounded-2xl">
                             <p class="text-sm text-gray-600 dark:text-gray-400">
                                 <a href="{{ route('login') }}"
                                    class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
@@ -917,6 +937,7 @@
                 updateButtonState(isBookmarked);
 
                 try {
+                    console.log('coming in');
                     /*
                     |------------------------------------------------------------------
                     | Send the AJAX request
@@ -939,6 +960,8 @@
                         },
                         body: JSON.stringify({ post_id: postId }),
                     });
+
+                    console.log(response);
 
                     const data = await response.json();
 

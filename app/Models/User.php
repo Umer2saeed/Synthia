@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Notifications\Auth\ResetPasswordNotification;
+use App\Notifications\Auth\VerifyEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -10,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Follow;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /*
     |--------------------------------------------------------------------------
@@ -226,6 +229,16 @@ class User extends Authenticatable
         if ($this->avatar) {
             Storage::disk('public')->delete($this->avatar);
         }
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification());
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
 }

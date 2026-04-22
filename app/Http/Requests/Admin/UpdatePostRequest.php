@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\SanitizationService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Models\Post;
@@ -39,7 +40,7 @@ class UpdatePostRequest extends FormRequest
             'is_featured'  => ['nullable', 'boolean'],
             'ai_summary'   => ['nullable', 'string', 'max:500'],
             'published_at' => ['nullable', 'date'],
-            'cover_image'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'cover_image'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'tags'         => ['nullable', 'array'],
             'tags.*'       => ['exists:tags,id'],
         ];
@@ -57,19 +58,35 @@ class UpdatePostRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $sanitizer = app(\App\Services\SanitizationService::class);
+
+        $mergeData = [];
+
+        if ($this->has('title') && $this->title !== null) {
+            $mergeData['title'] = $sanitizer->cleanText($this->title);
+        }
+
+        if ($this->has('content') && $this->content !== null) {
+            $cleaned = $sanitizer->cleanRichText($this->content);
+            if (trim($cleaned) !== '') {
+                $mergeData['content'] = $cleaned;
+            }
+        }
+
+        if ($this->has('ai_summary') && $this->ai_summary !== null) {
+            $mergeData['ai_summary'] = $sanitizer->cleanText($this->ai_summary);
+        }
+
+        if (!empty($mergeData)) {
+            $this->merge($mergeData);
+        }
+
         $post = $this->route('post');
 
         if (!$this->user()->can('publish posts')) {
-            /*
-            | Author cannot change a draft to published.
-            | But if an editor already published it, keep it published.
-            | We only lock it to draft if it was already a draft.
-            */
             if ($post->status === 'draft') {
                 $this->merge(['status' => 'draft']);
             }
-
-            // Author cannot change featured status
             $this->merge(['is_featured' => $post->is_featured]);
         }
     }

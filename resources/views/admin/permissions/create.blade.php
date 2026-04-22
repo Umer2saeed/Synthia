@@ -5,6 +5,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-xl font-semibold text-gray-800">Create Permission</h2>
+        <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}
     </x-slot>
 
     <div class="py-8 max-w-xl mx-auto px-4">

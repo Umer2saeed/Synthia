@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendNewFollowerNotificationJob;
+use App\Models\Follow;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,30 +81,28 @@ class FollowController extends Controller
         | which are the helper methods we added to the User model.
         */
         if ($currentUser->isFollowing($author)) {
-            /*
-            |------------------------------------------------------------------
-            | Currently following → UNFOLLOW
-            |------------------------------------------------------------------
-            | unfollow() runs:
-            |   DELETE FROM follows
-            |   WHERE follower_id = {me} AND following_id = {author}
-            */
             $currentUser->unfollow($author);
             $isNowFollowing = false;
             $message        = 'Unfollowed ' . $author->display_name;
 
         } else {
-            /*
-            |------------------------------------------------------------------
-            | Not following → FOLLOW
-            |------------------------------------------------------------------
-            | follow() runs:
-            |   INSERT INTO follows (follower_id, following_id, created_at)
-            |   VALUES ({me}, {author}, NOW())
-            */
             $currentUser->follow($author);
             $isNowFollowing = true;
             $message        = 'Now following ' . $author->display_name;
+
+            /*
+            | Dispatch notification to the author being followed.
+            | We find the Follow record just created so the job
+            | has access to both follower and following relationships.
+            */
+            $followRecord = Follow::where('follower_id', $currentUser->id)
+                ->where('following_id', $author->id)
+                ->latest()
+                ->first();
+
+            if ($followRecord) {
+                SendNewFollowerNotificationJob::dispatch($followRecord);
+            }
         }
 
         /*

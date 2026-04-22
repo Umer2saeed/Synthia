@@ -1,9 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-gray-800">Edit Post: {{ Str::limit($post->title, 50) }}</h2>
+        <h2 class="text-xl font-semibold text-gray-800">Edit Post</h2>
+        <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}
     </x-slot>
 
     <div class="py-8 max-w-5xl mx-auto px-4">
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800">{{ Str::limit($post->title, 60) }}</h2>
+        </div>
+
         <form action="{{ route('admin.posts.update', $post) }}"
               method="POST"
               enctype="multipart/form-data"

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdatePasswordRequest;
 use App\Http\Requests\Admin\UpdateProfileRequest;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Jobs\OptimizeAvatarJob;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class ProfileController extends Controller
 
     public function update(UpdateProfileRequest $request)
     {
-        $user      = auth()->user();
+        $user = auth()->user();
         $validated = $request->validated();
 
         if ($request->hasFile('avatar')) {
@@ -37,6 +38,10 @@ class ProfileController extends Controller
 
         $user->update($validated);
 
+        // Dispatch avatar optimization if new avatar was uploaded
+        if ($request->hasFile('avatar') && !empty($validated['avatar'])) {
+            OptimizeAvatarJob::dispatch($user->fresh(), $validated['avatar']);
+        }
         return redirect()->route('admin.profile.edit')
             ->with('success', 'Profile updated successfully.');
     }

@@ -106,45 +106,23 @@ class PostSearchService
     ): LengthAwarePaginator {
 
         $baseQuery = Post::with(['user', 'category', 'tags'])
+            ->withCount([
+                'claps',
+                'comments',
+                'bookmarks' => fn($q) => $q->where('user_id', auth()->id() ?? 0),
+            ])
             ->published()
-            /*
-            | selectRaw adds a computed column to the SELECT statement.
-            | 'posts.*' means include all regular post columns.
-            | The MATCH...AGAINST expression calculates the relevance score.
-            |
-            | We use ? as a parameter placeholder for the search query.
-            | This is a prepared statement — protects against SQL injection.
-            | The second argument [$query] provides the value for ?.
-            */
             ->selectRaw(
                 'posts.*, MATCH(title, content) AGAINST(? IN NATURAL LANGUAGE MODE) AS relevance_score',
                 [$query]
             )
-            /*
-            | The WHERE clause filters to only matching posts.
-            | Posts where neither title nor content contain the search
-            | words get a score of 0 and are excluded by this condition.
-            |
-            | WHY > 0 instead of just having MATCH in WHERE?
-            | MySQL only returns rows where MATCH score > 0 by default
-            | in Natural Language Mode. The > 0 makes this explicit
-            | and readable.
-            */
             ->whereRaw(
                 'MATCH(title, content) AGAINST(? IN NATURAL LANGUAGE MODE)',
                 [$query]
             )
-            /*
-            | Order by relevance score descending.
-            | Most relevant posts appear first.
-            | Posts mentioning the search term many times rank higher
-            | than posts mentioning it once.
-            */
             ->orderByDesc('relevance_score');
 
-        // Apply additional filters (category, etc.)
         $baseQuery = $this->applyFilters($baseQuery, $filters);
-
         return $baseQuery->paginate($perPage)->withQueryString();
     }
 
@@ -165,6 +143,11 @@ class PostSearchService
     ): LengthAwarePaginator {
 
         $baseQuery = Post::with(['user', 'category', 'tags'])
+            ->withCount([
+                'claps',
+                'comments',
+                'bookmarks' => fn($q) => $q->where('user_id', auth()->id() ?? 0),
+            ])
             ->published()
             ->where(function ($q) use ($query) {
                 $q->where('title',   'like', '%' . $query . '%')
@@ -173,26 +156,24 @@ class PostSearchService
             ->latest('published_at');
 
         $baseQuery = $this->applyFilters($baseQuery, $filters);
-
         return $baseQuery->paginate($perPage)->withQueryString();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | getLatestPosts() — Return latest posts when no query given
-    |--------------------------------------------------------------------------
-    */
     private function getLatestPosts(
         int   $perPage,
         array $filters
     ): LengthAwarePaginator {
 
         $baseQuery = Post::with(['user', 'category', 'tags'])
+            ->withCount([
+                'claps',
+                'comments',
+                'bookmarks' => fn($q) => $q->where('user_id', auth()->id() ?? 0),
+            ])
             ->published()
             ->latest('published_at');
 
         $baseQuery = $this->applyFilters($baseQuery, $filters);
-
         return $baseQuery->paginate($perPage)->withQueryString();
     }
 

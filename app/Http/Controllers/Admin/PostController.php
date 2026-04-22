@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePostRequest;
 use App\Http\Requests\Admin\UpdatePostRequest;
+use App\Jobs\OptimizePostCoverJob;
+use App\Jobs\SendPostPublishedNotificationJob;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
@@ -25,7 +27,7 @@ class PostController extends Controller
     */
     public function index(Request $request)
     {
-        $query = Post::with(['user', 'category'])->latest();
+        $query = Post::with(['user', 'category', 'tags'])->withCount(['comments'])->latest();
 
         /*
         |----------------------------------------------------------------------
@@ -80,8 +82,7 @@ class PostController extends Controller
         $validated = $request->validated();
 
         if ($request->hasFile('cover_image')) {
-            $validated['cover_image'] = $request->file('cover_image')
-                ->store('posts', 'public');
+            $validated['cover_image'] = $request->file('cover_image')->store('posts', 'public');
         }
 
         if (empty($validated['slug'])) {
@@ -93,6 +94,14 @@ class PostController extends Controller
 
         $post = Post::create($validated);
         $post->tags()->sync($request->input('tags', []));
+
+        /*
+        | Dispatch optimization job only if a cover image was uploaded.
+        | We pass both the post model and the original path explicitly.
+        */
+        if (!empty($validated['cover_image'])) {
+            OptimizePostCoverJob::dispatch($post, $validated['cover_image']);
+        }
 
         return redirect()->route('admin.posts.index')
             ->with('success', 'Post created successfully.');
@@ -136,14 +145,25 @@ class PostController extends Controller
     */
     public function update(UpdatePostRequest $request, Post $post)
     {
+        /*
+        | Capture the previous status BEFORE updating.
+        | We need to know if status is CHANGING to published.
+        | If it was already published, we do not send another email.
+        |
+        | Example:
+        |   Before: status = 'draft'     → After: status = 'published' → SEND EMAIL
+        |   Before: status = 'published' → After: status = 'published' → DO NOT SEND
+        |   Before: status = 'scheduled' → After: status = 'published' → SEND EMAIL
+        */
+        $previousStatus = $post->status;
+
         $validated = $request->validated();
 
         if ($request->hasFile('cover_image')) {
             if ($post->cover_image) {
                 Storage::disk('public')->delete($post->cover_image);
             }
-            $validated['cover_image'] = $request->file('cover_image')
-                ->store('posts', 'public');
+            $validated['cover_image'] = $request->file('cover_image')->store('posts', 'public');
         } else {
             unset($validated['cover_image']);
         }
@@ -155,8 +175,21 @@ class PostController extends Controller
         $post->update($validated);
         $post->tags()->sync($request->input('tags', []));
 
-        return redirect()->route('admin.posts.index')
-            ->with('success', 'Post updated successfully.');
+        // Dispatch optimization for new cover image
+        if ($request->hasFile('cover_image') && !empty($validated['cover_image'])) {
+            OptimizePostCoverJob::dispatch($post->fresh(), $validated['cover_image']);
+        }
+
+       // Task 10: Dispatch post published notification
+        $nowPublished    = $post->status === 'published';
+        $wasNotPublished = $previousStatus !== 'published';
+        $isNotOwnPost    = $post->user_id !== auth()->id();
+
+        if ($nowPublished && $wasNotPublished && $isNotOwnPost) {
+            SendPostPublishedNotificationJob::dispatch($post->fresh());
+        }
+
+        return redirect()->route('admin.posts.index')->with('success', 'Post updated successfully.');
     }
 
     /*

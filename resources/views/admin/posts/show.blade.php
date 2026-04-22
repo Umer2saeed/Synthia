@@ -1,8 +1,18 @@
 <x-app-layout>
     {{-- Header buttons --}}
+
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-3">
-            <h2 class="text-xl font-semibold text-gray-800">Post Details</h2>
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Post Details</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ now()->format('l, d F Y') }}</p>
+            </div>
+        </div>
+    </x-slot>
+
+    <div class="py-8 max-w-5xl mx-auto px-4">
+
+        <div class="flex mb-4 justify-between">
             <div class="flex items-center gap-2">
 
                 {{-- Edit: admin/editor OR own post author --}}
@@ -13,16 +23,15 @@
                         Edit
                     </a>
                 @endif
-
+            </div>
+            <div class="flex items-center">
                 <a href="{{ route('admin.posts.index') }}"
                    class="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">
                     ← Back
                 </a>
             </div>
         </div>
-    </x-slot>
 
-    <div class="py-8 max-w-5xl mx-auto px-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {{-- =============================================

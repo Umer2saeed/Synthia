@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Services\CacheService;
 use App\Traits\HasSeoMeta;
 use App\Models\User;
 use App\Models\Category;
@@ -13,13 +14,19 @@ class AuthorController extends Controller
 {
     use HasSeoMeta;
 
+    public function __construct(
+        private CacheService $cache
+    )
+    {
+    }
+
     public function show(string $username)
     {
         $author = User::where('username', $username)
             ->orWhere('id', $username)
             ->firstOrFail();
-
         $author->load('roles');
+
         $author->loadCount([
             'posts'     => fn($q) => $q->published(),
             'followers',
@@ -32,16 +39,18 @@ class AuthorController extends Controller
             ->latest('published_at')
             ->paginate(9);
 
-        $categories  = Category::withCount(['posts' => fn($q) => $q->published()])
-            ->orderByDesc('posts_count')
-            ->limit(8)
-            ->get();
+//        $categories  = Category::withCount(['posts' => fn($q) => $q->published()])
+//            ->orderByDesc('posts_count')
+//            ->limit(8)
+//            ->get();
+//
+//        $popularTags = Tag::withCount(['posts' => fn($q) => $q->published()])
+//            ->orderByDesc('posts_count')
+//            ->limit(15)
+//            ->get();
 
-        $popularTags = Tag::withCount(['posts' => fn($q) => $q->published()])
-            ->orderByDesc('posts_count')
-            ->limit(15)
-            ->get();
-
+        $categories  = $this->cache->getSidebarCategories();
+        $popularTags = $this->cache->getSidebarTags();
         /*
         |----------------------------------------------------------------------
         | Check if the logged-in user follows this author

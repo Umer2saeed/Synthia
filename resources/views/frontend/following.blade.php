@@ -73,7 +73,7 @@
                                     </a>
                                     @if($author->username)
                                         <p class="text-xs text-gray-400 font-mono">
-                                            @{{ $author->username }}
+                                            @ {{ $author->username }}
                                         </p>
                                     @endif
                                 </div>

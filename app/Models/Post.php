@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,23 +12,25 @@ use App\Models\Bookmark;
 
 class Post extends Model
 {
-    /*
-    |--------------------------------------------------------------------------
-    | SoftDeletes Trait
-    |--------------------------------------------------------------------------
-    | This trait adds soft delete support. Instead of permanently removing a
-    | record from the DB, it sets the `deleted_at` timestamp. You can restore
-    | it later. Requires `$table->softDeletes()` in migration — which you have.
-    */
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     /*
     |--------------------------------------------------------------------------
-    | Fillable Fields
+    | $with — Always eager load these relationships automatically
     |--------------------------------------------------------------------------
-    | These are the fields allowed for mass assignment (e.g., Post::create([...]))
-    | Any field NOT in this list will be silently ignored during mass assignment.
+    | These relationships load automatically on EVERY Post query.
+    | Post::all(), Post::find(1), Post::paginate() — all include these.
+    |
+    | WHY only user and category here?
+    | These are needed on virtually every page that shows a post.
+    | We do NOT add tags here because not every page needs tags,
+    | and loading tags on queries that do not need them wastes memory.
+    | Tags are added explicitly with with('tags') where needed.
+    |
+    | IMPORTANT: $with runs even on admin queries. Keep it minimal.
+    | Over-eager loading (too many relationships in $with) is also bad.
     */
+    protected $with = ['user', 'category'];
     protected $fillable = [
         'user_id',
         'category_id',
