@@ -1,3 +1,118 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/*
+|--------------------------------------------------------------------------
+| TipTap Rich Text Editor Styles
+|--------------------------------------------------------------------------
+*/
+
+/* The contenteditable area TipTap creates */
+.tiptap {
+    outline: none;
+    min-height: 380px;
+}
+
+/* Placeholder text when editor is empty */
+.tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af;
+    pointer-events: none;
+    height: 0;
+}
+
+/* Dark mode placeholder */
+.dark .tiptap p.is-editor-empty:first-child::before {
+    color: #6b7280;
+}
+
+/* Code blocks in the editor */
+.tiptap pre {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.875rem;
+}
+
+.tiptap pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+}
+
+/* Blockquote styling in editor */
+.tiptap blockquote {
+    border-left: 3px solid #6366f1;
+    padding-left: 1rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Horizontal rule in editor */
+.tiptap hr {
+    border: none;
+    border-top: 2px solid #e5e7eb;
+    margin: 1.5rem 0;
+}
+
+/* Selected text highlight */
+.tiptap ::selection {
+    background-color: #c7d2fe;
+}
+
+.dark .tiptap ::selection {
+    background-color: #3730a3;
+}
+
+/* Link styling in editor */
+.tiptap a {
+    color: #6366f1;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+
+/* TOC link default state */
+.toc-link {
+    color: #4b5563; /* gray-600 */
+    text-decoration: none;
+    display: block;
+}
+
+/* TOC link hover state */
+.toc-link:hover {
+    color: #4f46e5; /* indigo-600 */
+    background-color: #eef2ff; /* indigo-50 */
+    border-left-color: #c7d2fe; /* indigo-200 */
+}
+
+/* TOC active link */
+.toc-link.toc-active {
+    color: #4f46e5;
+    background-color: #eef2ff;
+    border-left-color: #4f46e5;
+    font-weight: 600;
+}
+
+/* Dark mode TOC links */
+.dark .toc-link {
+    color: #9ca3af; /* gray-400 */
+}
+
+.dark .toc-link:hover {
+    color: #818cf8; /* indigo-400 */
+    background-color: #1e1b4b; /* indigo-950 */
+}
+
+.dark .toc-link.toc-active {
+    color: #818cf8;
+    background-color: #1e1b4b;
+    border-left-color: #818cf8;
+}

@@ -51,13 +51,28 @@
                         </div>
 
                         {{-- Content --}}
+{{--                        <div>--}}
+{{--                            <label class="block text-sm font-medium text-gray-700 mb-1">--}}
+{{--                                Content <span class="text-red-500">*</span>--}}
+{{--                            </label>--}}
+{{--                            <textarea name="content" rows="14"--}}
+{{--                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 @error('content') border-red-400 @enderror"--}}
+{{--                                      placeholder="Write your post content here...">{{ old('content') }}</textarea>--}}
+{{--                            @error('content')--}}
+{{--                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>--}}
+{{--                            @enderror--}}
+{{--                        </div>--}}
+                        {{-- ✅ NEW — TipTap rich text editor --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Content <span class="text-red-500">*</span>
                             </label>
-                            <textarea name="content" rows="14"
-                                      class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 @error('content') border-red-400 @enderror"
-                                      placeholder="Write your post content here...">{{ old('content') }}</textarea>
+
+                            <x-rich-editor
+                                name="content"
+                                :value="old('content', '')"
+                            />
+
                             @error('content')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror

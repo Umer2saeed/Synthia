@@ -45,7 +45,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Prevent Lazy Loading in Development
         Model::preventLazyLoading(!app()->isProduction());
 
         // Paginator

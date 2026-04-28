@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -22,7 +23,7 @@ class User extends Authenticatable implements MustVerifyEmail
     | Notifiable  → allows sending notifications (email, SMS, etc.)
     | HasRoles    → Spatie trait for role/permission support
     */
-    use Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles;
 
     /*
     |--------------------------------------------------------------------------

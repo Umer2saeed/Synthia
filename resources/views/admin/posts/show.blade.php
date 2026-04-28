@@ -52,8 +52,19 @@
                     <p class="text-xs text-gray-400 font-mono">slug: {{ $post->slug }}</p>
                     <hr class="border-gray-100">
                     <div class="text-sm text-gray-700 leading-relaxed prose max-w-none">
-                        {!! nl2br(e($post->content)) !!}
+                        {!! $post->content !!}
                     </div>
+{{--                    <div class="prose prose-lg prose-indigo dark:prose-invert max-w-none--}}
+{{--                            prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white--}}
+{{--                            prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed--}}
+{{--                            prose-a:text-indigo-600 dark:prose-a:text-indigo-400--}}
+{{--                            prose-strong:text-gray-900 dark:prose-strong:text-white--}}
+{{--                            prose-code:text-indigo-600 dark:prose-code:text-indigo-400--}}
+{{--                            prose-pre:bg-gray-900 prose-pre:text-gray-100--}}
+{{--                            prose-blockquote:border-indigo-500 prose-blockquote:text-gray-600--}}
+{{--                            dark:prose-blockquote:text-gray-400">--}}
+{{--                        {!! $post->content !!}--}}
+{{--                    </div>--}}
                 </div>
 
                 {{-- AI Summary --}}

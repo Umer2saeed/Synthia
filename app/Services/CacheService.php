@@ -30,7 +30,9 @@ class CacheService
         $ids = Cache::remember(
             CacheKeys::SIDEBAR_CATEGORIES,
             self::TTL_LONG,
-            fn() => Category::withCount(['posts' => fn($q) => $q->published()])
+            fn() => \App\Models\Category::withCount([
+                'posts' => fn($q) => $q->published()
+            ])
                 ->having('posts_count', '>', 0)
                 ->orderByDesc('posts_count')
                 ->limit(10)
@@ -38,11 +40,11 @@ class CacheService
                 ->toArray()
         );
 
-        if (empty($ids)) {
-            return collect();
-        }
+        if (empty($ids)) return collect();
 
-        return Category::withCount(['posts' => fn($q) => $q->published()])
+        return \App\Models\Category::withCount([
+            'posts' => fn($q) => $q->published()
+        ])
             ->whereIn('id', $ids)
             ->orderByDesc('posts_count')
             ->get();
@@ -53,7 +55,9 @@ class CacheService
         $ids = Cache::remember(
             CacheKeys::SIDEBAR_TAGS,
             self::TTL_LONG,
-            fn() => Tag::withCount(['posts' => fn($q) => $q->published()])
+            fn() => \App\Models\Tag::withCount([
+                'posts' => fn($q) => $q->published()
+            ])
                 ->having('posts_count', '>', 0)
                 ->orderByDesc('posts_count')
                 ->limit(20)
@@ -61,11 +65,11 @@ class CacheService
                 ->toArray()
         );
 
-        if (empty($ids)) {
-            return collect();
-        }
+        if (empty($ids)) return collect();
 
-        return Tag::withCount(['posts' => fn($q) => $q->published()])
+        return \App\Models\Tag::withCount([
+            'posts' => fn($q) => $q->published()
+        ])
             ->whereIn('id', $ids)
             ->orderByDesc('posts_count')
             ->get();
