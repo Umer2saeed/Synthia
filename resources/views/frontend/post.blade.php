@@ -58,10 +58,31 @@
                                           hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     {{ $post->user->display_name }}
                                 </a>
+{{--                                <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">--}}
+{{--                                    <span>{{ $post->published_at?->format('d M Y') ?? $post->created_at->format('d M Y') }}</span>--}}
+{{--                                    <span>·</span>--}}
+{{--                                    <span>{{ max(1, ceil(str_word_count(strip_tags($post->content)) / 200)) }} min read</span>--}}
+{{--                                    <span>·</span>--}}
+{{--                                    <span>{{ $comments->count() }} {{ Str::plural('comment', $comments->count()) }}</span>--}}
+{{--                                </div>--}}
+
                                 <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
                                     <span>{{ $post->published_at?->format('d M Y') ?? $post->created_at->format('d M Y') }}</span>
                                     <span>·</span>
                                     <span>{{ max(1, ceil(str_word_count(strip_tags($post->content)) / 200)) }} min read</span>
+                                    <span>·</span>
+
+                                    {{-- View count --}}
+                                    <span class="flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+                                                     -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        {{ $post->formatted_views }} {{ $post->views === 1 ? 'view' : 'views' }}
+                                    </span>
                                     <span>·</span>
                                     <span>{{ $comments->count() }} {{ Str::plural('comment', $comments->count()) }}</span>
                                 </div>

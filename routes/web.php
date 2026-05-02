@@ -62,6 +62,8 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
 
 // Auth Routes (Breeze handles login/register/etc.)
 require __DIR__.'/auth.php';
+// No user can log out explicitly by putting the /logout in the URL
+Route::get('/logout', fn() => redirect('/login'));
 
 
 

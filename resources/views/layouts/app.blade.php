@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+      x-data="adminThemeManager()"
+      :class="{ 'dark': isDark }">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,20 +15,51 @@
 
     <!-- Scripts (Vite + Tailwind + Alpine via Breeze) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{--
+    | Prevent flash of wrong theme.
+    | Runs before Alpine boots — reads the same localStorage key
+    | used by the frontend so both sides share one preference.
+    --}}
+    <script>
+        (function () {
+            const theme = localStorage.getItem('synthia-theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
 </head>
-<body class="font-sans antialiased bg-gray-100">
 
-<div x-data="{ sidebarOpen: true }" class="flex h-screen overflow-hidden">
+<body class="font-sans antialiased bg-gray-100 dark:bg-gray-950 transition-colors duration-300">
 
+{{--<div x-data="{ sidebarOpen: true }" class="flex h-screen overflow-hidden">--}}
+
+<div
+    x-cloak
+    x-data="{
+        sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false',
+        toggleSidebar() {
+            this.sidebarOpen = !this.sidebarOpen;
+            localStorage.setItem('sidebarOpen', this.sidebarOpen);
+        }
+    }"
+    class="flex h-screen overflow-hidden"
+>
     {{-- ===================== SIDEBAR ===================== --}}
     <aside
         :class="sidebarOpen ? 'w-64' : 'w-16'"
-        class="relative flex flex-col flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out overflow-hidden"
+        class="relative flex flex-col flex-shrink-0
+               bg-white dark:bg-gray-900
+               border-r border-gray-200 dark:border-gray-700
+               transition-all duration-300 ease-in-out overflow-hidden"
     >
         {{-- Logo / Brand --}}
-        <div class="flex items-center h-16 px-4 border-b border-gray-200 flex-shrink-0">
+        <div class="flex items-center h-16 px-4
+                    border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center flex-shrink-0">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500
+                            flex items-center justify-center flex-shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/>
@@ -37,40 +70,18 @@
                       x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                       x-transition:leave="transition-opacity duration-100"
                       x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                      class="text-gray-900 font-semibold text-lg tracking-tight whitespace-nowrap">
+                      class="text-gray-900 dark:text-white font-semibold text-lg tracking-tight whitespace-nowrap">
                     Synthia
                 </span>
             </div>
         </div>
 
-
         {{-- Navigation --}}
         <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
 
             @php
-                /*
-                |----------------------------------------------------------------------
-                | Define all nav items with required permission or role guard.
-                |----------------------------------------------------------------------
-                | Each item has:
-                |   'permission' => checked via $user->can('...')
-                |   'role'       => checked via $user->hasRole('...')
-                |   null         => always visible to any authenticated user
-                |
-                | We use 'permission' where possible because it is more granular.
-                | We only use 'role' for strictly role-based items like Roles and
-                | Permissions which are admin-only by design.
-                */
                 $user = auth()->user();
 
-                /*
-                |----------------------------------------------------------------------
-                | Compute trash count for the badge
-                |----------------------------------------------------------------------
-                | Admin and editor see all trashed posts count.
-                | Author sees only their own trashed posts count.
-                | We only compute this once here and pass it to the nav item below.
-                */
                 $trashedCount = 0;
                 if (auth()->user()->can('delete own posts')) {
                     $trashedCount = auth()->user()->can('delete all posts')
@@ -78,12 +89,11 @@
                         : \App\Models\Post::onlyTrashed()->where('user_id', auth()->id())->count();
                 }
 
-
                 $navItems = [
                     [
                         'href'       => route('admin.dashboard'),
                         'label'      => 'Dashboard',
-                        'permission' => null, // visible to all authenticated users
+                        'permission' => null,
                         'role'       => null,
                         'badge'      => null,
                         'icon'       => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
@@ -99,7 +109,7 @@
                     [
                         'href'       => route('admin.posts.trash'),
                         'label'      => 'Trash',
-                        'permission' => 'delete own posts', // authors, editors, admins all have this
+                        'permission' => 'delete own posts',
                         'role'       => null,
                         'badge'      => $trashedCount > 0 ? $trashedCount : null,
                         'icon'       => 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
@@ -115,7 +125,7 @@
                     [
                         'href'       => route('admin.tags.index'),
                         'label'      => 'Tags',
-                        'permission' => 'view categories', // tags follow same access as categories
+                        'permission' => 'view categories',
                         'role'       => null,
                         'badge'      => null,
                         'icon'       => 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14',
@@ -123,10 +133,10 @@
                     [
                         'href'       => route('admin.comments.index'),
                         'label'      => 'Comments',
-                        'permission' => 'delete comments', // only admin and editor see comment management
+                        'permission' => 'delete comments',
                         'role'       => null,
                         'badge'      => null,
-                        'icon'       => 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+                        'icon'       => 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 11.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
                     ],
                     [
                         'href'       => route('admin.users.index'),
@@ -147,7 +157,7 @@
                     [
                         'href'       => route('admin.permissions.index'),
                         'label'      => 'Permissions',
-                        'permission' => 'manage roles', // same guard as roles
+                        'permission' => 'manage roles',
                         'role'       => null,
                         'badge'      => null,
                         'icon'       => 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
@@ -155,7 +165,7 @@
                     [
                         'href'       => route('admin.profile.edit'),
                         'label'      => 'Profile',
-                        'permission' => null, // always visible
+                        'permission' => null,
                         'role'       => null,
                         'badge'      => null,
                         'icon'       => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
@@ -165,21 +175,10 @@
 
             @foreach($navItems as $item)
                 @php
-                    /*
-                    |------------------------------------------------------------------
-                    | Visibility check
-                    |------------------------------------------------------------------
-                    | If neither 'permission' nor 'role' is set → always show.
-                    | If 'permission' is set → only show if user has that permission.
-                    | If 'role' is set → only show if user has that role.
-                    | Both can be set → user must satisfy both.
-                    */
                     $show = true;
-
                     if (!empty($item['permission']) && !$user->can($item['permission'])) {
                         $show = false;
                     }
-
                     if (!empty($item['role']) && !$user->hasRole($item['role'])) {
                         $show = false;
                     }
@@ -194,10 +193,12 @@
                     <a href="{{ $item['href'] }}"
                        title="{{ $item['label'] }}"
                        class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm
-                          font-medium transition-colors duration-150
-                          {{ $active
-                              ? 'bg-gray-900 text-white'
-                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
+                              font-medium transition-colors duration-150
+                              {{ $active
+                                  ? 'bg-indigo-600 dark:bg-indigo-500 text-white'
+                                  : 'text-gray-600 dark:text-gray-400
+                                     hover:bg-gray-100 dark:hover:bg-gray-800
+                                     hover:text-gray-900 dark:hover:text-white' }}">
 
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -215,12 +216,6 @@
                             {{ $item['label'] }}
                         </span>
 
-                        {{--
-                        | Badge — shows the count next to the nav item label.
-                        | Only rendered when sidebarOpen is true (collapsed sidebar
-                        | has no room for a badge alongside the icon).
-                        | Only shown when the item has a non-null badge value.
-                        --}}
                         @if(!empty($item['badge']))
                             <span x-show="sidebarOpen"
                                   x-transition:enter="transition-opacity duration-200 delay-100"
@@ -231,8 +226,8 @@
                                   x-transition:leave-end="opacity-0"
                                   class="ml-auto px-1.5 py-0.5 text-xs font-semibold rounded-full
                                          {{ $active
-                                             ? 'bg-white text-gray-900'
-                                             : 'bg-red-100 text-red-700' }}">
+                                             ? 'bg-white text-indigo-600'
+                                             : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300' }}">
                                 {{ $item['badge'] }}
                             </span>
                         @endif
@@ -243,10 +238,12 @@
 
         </nav>
 
-        {{-- User Profile (bottom) --}}
-        <div class="flex-shrink-0 border-t border-gray-200 p-3">
+        {{-- User Profile (bottom of sidebar) --}}
+        <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-gray-700 uppercase">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900
+                            flex items-center justify-center flex-shrink-0
+                            text-sm font-semibold text-indigo-700 dark:text-indigo-300 uppercase">
                     {{ substr(Auth::user()->name, 0, 1) }}
                 </div>
                 <div x-show="sidebarOpen"
@@ -255,8 +252,12 @@
                      x-transition:leave="transition-opacity duration-100"
                      x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
                      class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">{{ Auth::user()->name }}</p>
-                    <p class="text-xs text-gray-500 truncate">{{ Auth::user()->email }}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {{ Auth::user()->name }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {{ Auth::user()->email }}
+                    </p>
                 </div>
             </div>
         </div>
@@ -267,32 +268,65 @@
     <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         {{-- Top Navbar --}}
-        <header class="flex items-center h-16 px-4 bg-white border-b border-gray-200 gap-4 flex-shrink-0">
+        <header class="flex items-center h-16 px-4
+                       bg-white dark:bg-gray-900
+                       border-b border-gray-200 dark:border-gray-700
+                       gap-4 flex-shrink-0">
 
             {{-- Sidebar Toggle --}}
-            <button @click="sidebarOpen = !sidebarOpen"
-                    class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-150">
+            <button @click="toggleSidebar()"
+                    class="p-2 rounded-lg
+                           text-gray-500 dark:text-gray-400
+                           hover:bg-gray-100 dark:hover:bg-gray-800
+                           hover:text-gray-700 dark:hover:text-white
+                           transition-colors duration-150">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
 
             {{-- Page Title --}}
-{{--            <h1 class="text-base font-semibold text-gray-800">{{ $title ?? 'Dashboard' }}</h1>--}}
-
-            {{-- Page Title / Header Slot --}}
             <div class="flex-1">
                 @if (isset($header))
                     {{ $header }}
                 @else
-                    <h1 class="text-base font-semibold text-gray-800">{{ $title ?? 'Dashboard' }}</h1>
+                    <h1 class="text-base font-semibold text-gray-800 dark:text-white">
+                        {{ $title ?? 'Dashboard' }}
+                    </h1>
                 @endif
             </div>
 
             <div class="flex-1"></div>
 
+            {{-- Dark Mode Toggle --}}
+            <button @click="toggle()"
+                    class="p-2 rounded-lg
+                           text-gray-500 dark:text-gray-400
+                           hover:bg-gray-100 dark:hover:bg-gray-800
+                           hover:text-gray-700 dark:hover:text-white
+                           transition-colors duration-150"
+                    :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+
+                {{-- Moon icon — shown in light mode --}}
+                <svg x-show="!isDark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+
+                {{-- Sun icon — shown in dark mode --}}
+                <svg x-show="isDark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+
+            </button>
+
             {{-- Notifications --}}
-            <button class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+            <button class="p-2 rounded-lg
+                           text-gray-500 dark:text-gray-400
+                           hover:bg-gray-100 dark:hover:bg-gray-800
+                           transition-colors duration-150">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
@@ -302,35 +336,71 @@
             {{-- User Dropdown --}}
             <div x-data="{ open: false }" class="relative">
                 <button @click="open = !open"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
-                    <div class="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center text-xs font-semibold text-gray-700 uppercase">
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
+                               text-gray-600 dark:text-gray-300
+                               hover:bg-gray-100 dark:hover:bg-gray-800
+                               transition-colors duration-150">
+                    <div class="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900
+                                flex items-center justify-center
+                                text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase">
                         {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
                     <span class="hidden sm:block">{{ Auth::user()->name }}</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-500"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
 
-                <div x-show="open" @click.outside="open = false"
+                <div x-show="open"
+                     @click.outside="open = false"
                      x-transition:enter="transition ease-out duration-100"
-                     x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
                      x-transition:leave="transition ease-in duration-75"
-                     x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                     class="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-50">
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-48
+                            bg-white dark:bg-gray-800
+                            rounded-lg border border-gray-200 dark:border-gray-700
+                            shadow-lg dark:shadow-gray-900
+                            py-1 z-50">
+
                     <a href="/profile"
-                       class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                       class="flex items-center gap-2 px-4 py-2 text-sm
+                              text-gray-700 dark:text-gray-300
+                              hover:bg-gray-50 dark:hover:bg-gray-700
+                              transition-colors duration-150">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         Profile
                     </a>
-                    <div class="border-t border-gray-100 my-1"></div>
+
+                    {{-- View Frontend link --}}
+                    <a href="{{ route('home') }}"
+                       target="_blank"
+                       class="flex items-center gap-2 px-4 py-2 text-sm
+                              text-gray-700 dark:text-gray-300
+                              hover:bg-gray-50 dark:hover:bg-gray-700
+                              transition-colors duration-150">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                        View Site
+                    </a>
+
+                    <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+
                     <form method="POST" action="/logout">
                         @csrf
                         <button type="submit"
-                                class="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                class="flex items-center gap-2 w-full px-4 py-2 text-sm
+                                       text-red-600 dark:text-red-400
+                                       hover:bg-red-50 dark:hover:bg-red-950
+                                       transition-colors duration-150">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -344,12 +414,33 @@
         </header>
 
         {{-- Page Content --}}
-        <main class="flex-1 overflow-y-auto p-6">
+        <main class="flex-1 overflow-y-auto p-6 bg-gray-100 dark:bg-gray-950">
             {{ $slot }}
         </main>
 
     </div>
 </div>
+
+{{-- Alpine.js theme manager --}}
+<script>
+    function adminThemeManager() {
+        return {
+            /*
+            | Uses the same localStorage key as the frontend ('synthia-theme').
+            | This means toggling dark mode in admin automatically applies
+            | to the frontend too and vice versa — one unified preference.
+            */
+            isDark: localStorage.getItem('synthia-theme') === 'dark' ||
+                (!localStorage.getItem('synthia-theme') &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches),
+
+            toggle() {
+                this.isDark = !this.isDark;
+                localStorage.setItem('synthia-theme', this.isDark ? 'dark' : 'light');
+            },
+        };
+    }
+</script>
 
 </body>
 </html>

@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(\App\Services\PostViewService::class);
+
         // Input Sanitization Service
         $this->app->singleton(\App\Services\SanitizationService::class);
         // CacheService
@@ -45,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Model::preventLazyLoading(!app()->isProduction());
+//        Model::preventLazyLoading(!app()->isProduction());
 
         // Paginator
         Paginator::useTailwind();

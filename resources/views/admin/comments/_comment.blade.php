@@ -1,52 +1,39 @@
-{{--
-|--------------------------------------------------------------------------
-| Single Comment Partial
-|--------------------------------------------------------------------------
-| Used in two places:
-|   1. posts/show.blade.php — looped to render existing comments on load
-|   2. CommentController@store — rendered to HTML string, returned as JSON
-|
-| The `data-comment-id` attribute is used by the delete JS handler.
---}}
 <div class="comment-item flex gap-3 group"
      data-comment-id="{{ $comment->id }}">
 
-    {{-- User Avatar --}}
     <img src="{{ $comment->user->avatar_url }}"
          alt="{{ $comment->user->name }}"
-         class="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0 mt-0.5">
+         class="w-8 h-8 rounded-full object-cover
+                border border-gray-200 dark:border-gray-700
+                shrink-0 mt-0.5">
 
-    {{-- Comment Body --}}
     <div class="flex-1">
-        <div class="bg-gray-50 rounded-xl px-4 py-3">
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3">
 
-            {{-- Author + Timestamp --}}
             <div class="flex items-center justify-between mb-1 flex-wrap gap-1">
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-gray-800">
+                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">
                         {{ $comment->user->display_name }}
                     </span>
-
-                    {{-- Pending badge — shown to admins/editors only --}}
                     @if(!$comment->is_approved)
-                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
+                        <span class="px-2 py-0.5
+                                     bg-yellow-100 dark:bg-yellow-900
+                                     text-yellow-700 dark:text-yellow-400
+                                     text-xs rounded-full">
                             Pending
                         </span>
                     @endif
                 </div>
-
-                <span class="text-xs text-gray-400">
+                <span class="text-xs text-gray-400 dark:text-gray-500">
                     {{ $comment->created_at->diffForHumans() }}
                 </span>
             </div>
 
-            {{-- Comment Content --}}
-            <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+            <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {{ $comment->content }}
             </p>
         </div>
 
-        {{-- Action Links: Delete (own comment or admin/editor) --}}
         <div class="flex items-center gap-3 mt-1 px-1">
             @if(auth()->check() && (
                 $comment->user_id === auth()->id() ||
@@ -54,7 +41,10 @@
             ))
                 <button
                     type="button"
-                    class="delete-comment-btn text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
+                    class="delete-comment-btn text-xs
+                           text-red-400 dark:text-red-500
+                           hover:text-red-600 dark:hover:text-red-400
+                           opacity-0 group-hover:opacity-100 transition"
                     data-comment-id="{{ $comment->id }}">
                     Delete
                 </button>

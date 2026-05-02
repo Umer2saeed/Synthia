@@ -112,6 +112,14 @@
                         <div class="w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
                         <div class="text-center sm:text-left">
                             <p class="text-xl font-bold text-gray-900 dark:text-white">
+                                {{ number_format($author->posts()->published()->sum('views')) }}
+                            </p>
+                            <p class="text-xs text-gray-400">Total Views</p>
+                        </div>
+
+                        <div class="w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+                        <div class="text-center sm:text-left">
+                            <p class="text-xl font-bold text-gray-900 dark:text-white">
                                 {{ $author->created_at->format('M Y') }}
                             </p>
                             <p class="text-xs text-gray-400">Member Since</p>

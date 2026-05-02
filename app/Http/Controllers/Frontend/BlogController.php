@@ -7,6 +7,7 @@ use App\Http\Requests\Frontend\StoreCommentRequest;
 use App\Jobs\SendNewCommentNotificationJob;
 use App\Models\Clap;
 use App\Services\PostSearchService;
+use App\Services\PostViewService;
 use App\Services\SanitizationService;
 use App\Traits\HasSeoMeta;
 use App\Models\Post;
@@ -141,7 +142,7 @@ class BlogController extends Controller
         ));
     }
 
-    public function show(string $slug)
+    public function show(string $slug, Request $request)
     {
         /*
         | getPostBySlug() checks cache first.
@@ -155,6 +156,15 @@ class BlogController extends Controller
 
         if (!$post) {
             abort(404);
+        }
+
+        $viewService = app(PostViewService::class);
+
+        $isOwnPost = auth()->check() && auth()->id() === $post->user_id;
+        $isStaff   = auth()->check() && auth()->user()->hasAnyRole(['admin', 'editor']);
+
+        if (!$isOwnPost && !$isStaff) {
+            $viewService->record($post, $request);
         }
 
         $clapData = \App\Models\Clap::where('post_id', $post->id)

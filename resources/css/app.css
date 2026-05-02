@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 
+[x-cloak] { display: none !important; }
+
 /*
 |--------------------------------------------------------------------------
 | TipTap Rich Text Editor Styles

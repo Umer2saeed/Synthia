@@ -37,6 +37,7 @@ class Post extends Model
         'title',
         'slug',
         'content',
+        'views',
         'cover_image',
         'status',
         'is_featured',
@@ -328,5 +329,28 @@ class Post extends Model
         return $this->bookmarks()
             ->where('user_id', $user->id)
             ->exists();
+    }
+
+    /*
+|--------------------------------------------------------------------------
+| formattedViews() — Human-readable view count
+|--------------------------------------------------------------------------
+| 1234    → "1,234"
+| 12345   → "12.3K"
+| 1234567 → "1.2M"
+*/
+    public function getFormattedViewsAttribute(): string
+    {
+        $views = $this->views ?? 0;
+
+        if ($views >= 1_000_000) {
+            return round($views / 1_000_000, 1) . 'M';
+        }
+
+        if ($views >= 10_000) {
+            return round($views / 1_000, 1) . 'K';
+        }
+
+        return number_format($views);
     }
 }
