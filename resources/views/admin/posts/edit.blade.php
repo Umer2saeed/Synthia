@@ -5,6 +5,51 @@
     </x-slot>
 
     <div class="py-8 max-w-5xl mx-auto px-4">
+
+        {{-- =============================================
+     AUTOSAVE RESTORE BANNER
+     Shown only when an unsaved draft exists
+============================================= --}}
+        @if(isset($autosaveDraft) && $autosaveDraft)
+            <div data-post-id="{{ $post->id }}" id="autosave-banner" class="mb-5 flex items-center justify-between gap-4
+                px-4 py-3 rounded-xl
+                bg-amber-50 dark:bg-amber-950
+                border border-amber-200 dark:border-amber-800
+                text-amber-800 dark:text-amber-300 text-sm">
+
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Unsaved draft found from {{ $autosaveDraft->saved_at->diffForHumans() }}.
+                    Would you like to restore it?
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                    <button type="button"
+                            id="restore-draft-btn"
+                            data-title="{{ $autosaveDraft->title }}"
+                            data-content="{{ e($autosaveDraft->content) }}"
+                            class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700
+                           text-white text-xs font-medium rounded-lg transition">
+                        Restore
+                    </button>
+                    <button type="button"
+                            id="dismiss-draft-btn"
+                            class="text-xs text-amber-700 dark:text-amber-400 hover:underline">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        {{-- Autosave status indicator --}}
+        <div id="autosave-status"
+             class="mb-3 text-xs text-gray-400 dark:text-gray-500 text-right hidden">
+            <span id="autosave-status-text">Saving...</span>
+        </div>
+
         <div>
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
                 {{ Str::limit($post->title, 60) }}

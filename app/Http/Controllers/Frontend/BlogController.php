@@ -216,12 +216,92 @@ class BlogController extends Controller
             publishedAt: $post->published_at?->toIso8601String(),
         );
 
+        /*
+   | Load reaction counts and current user's reaction in one efficient block.
+   | We use a single query for counts and one EXISTS check for user reaction.
+   */
+        $reactionCounts  = $post->getReactionCounts();
+        $userReaction    = auth()->check()
+            ? \App\Models\Reaction::where('user_id', auth()->id())
+                ->where('post_id', $post->id)
+                ->value('type') // returns the type string or null
+            : null;
+
         return view('frontend.post', compact(
             'post', 'comments', 'relatedPosts', 'categories',
             'popularTags', 'totalClaps', 'userClaps', 'maxClaps',
             'isBookmarked', 'seo',
+            'reactionCounts', 'userReaction'
         ));
     }
+
+    public function category(string $slug)
+    {
+        $category = \App\Models\Category::where('slug', $slug)->firstOrFail();
+
+        $page    = (int) request()->input('page', 1);
+        $perPage = 12;
+
+        $cacheKey = 'category_posts_' . $slug . '_page_' . $page;
+
+        $cached = \Illuminate\Support\Facades\Cache::remember(
+            $cacheKey,
+            \App\Services\CacheService::TTL_MEDIUM,
+            function () use ($category, $page, $perPage) {
+                $paginator = Post::published()
+                    ->where('category_id', $category->id)
+                    ->latest('published_at')
+                    ->paginate($perPage, ['id'], 'page', $page);
+
+                return [
+                    'ids'   => $paginator->pluck('id')->toArray(),
+                    'total' => $paginator->total(),
+                ];
+            }
+        );
+
+        $ids = $cached['ids'];
+
+        if (!empty($ids)) {
+            $items = Post::with(['user', 'category', 'tags'])
+                ->withCount([
+                    'claps',
+                    'comments',
+                    'bookmarks' => fn($q) => $q->where('user_id', auth()->id() ?? 0),
+                ])
+                ->whereIn('id', $ids)
+                ->get()
+                ->sortBy(fn($post) => array_search($post->id, $ids))
+                ->values();
+        } else {
+            $items = collect();
+        }
+
+        $posts = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $cached['total'],
+            $perPage,
+            $page,
+            [
+                'path'  => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'query' => request()->query(),
+            ]
+        );
+
+        $categories  = $this->cache->getSidebarCategories();
+        $popularTags = $this->cache->getSidebarTags();
+
+        $seo = $this->buildSeo(
+            title:       $category->name . ' — Articles',
+            description: $category->description ?? 'Browse all articles in ' . $category->name,
+            type:        'website',
+        );
+
+        return view('frontend.blog', compact(
+            'posts', 'categories', 'popularTags', 'seo', 'category'
+        ))->with('currentCategory', $category);
+    }
+
 
     /*
     | storeComment() and destroyComment() unchanged — no SEO needed

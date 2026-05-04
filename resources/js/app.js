@@ -1,5 +1,7 @@
 import './bootstrap';
-import './editor'; // ← add this line
+import './editor';
+import './code-copy';
+import './autosave';
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
@@ -15,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (headings && headings.length > 0) {
             initActiveHeadingTracking(headings);
         }
-
         document.addEventListener('click', function (e) {
             const tocLink = e.target.closest('[data-toc-link]');
             if (!tocLink) return;

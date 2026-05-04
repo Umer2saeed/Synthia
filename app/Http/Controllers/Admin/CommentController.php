@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendCommentApprovedNotificationJob;
+use App\Models\ActivityLog;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -62,6 +63,12 @@ class CommentController extends Controller
 
         $comment->delete();
 
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_COMMENT_APPROVED,
+            description: 'Approved comment by ' . $comment->user->name . ' on "' . $comment->post->title . '"',
+            model:       $comment,
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Comment deleted.',
@@ -98,6 +105,12 @@ class CommentController extends Controller
         if (!$wasApproved && $comment->is_approved) {
             SendCommentApprovedNotificationJob::dispatch($comment->fresh());
         }
+
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_COMMENT_APPROVED,
+            description: 'Approved comment by ' . $comment->user->name . ' on "' . $comment->post->title . '"',
+            model:       $comment,
+        );
 
         return response()->json([
             'success'     => true,

@@ -3,16 +3,18 @@
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Posts</h2>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ now()->format('l, d F Y') }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    {{ now()->format('l, d F Y') }}
+                </p>
             </div>
         </div>
     </x-slot>
 
     <div class="py-8 max-w-7xl mx-auto px-4">
 
-        {{-- Flash Success Message --}}
         @if(session('success'))
-            <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700
+            <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-900
+                        border border-green-300 dark:border-green-700
                         text-green-800 dark:text-green-300 rounded-lg text-sm">
                 {{ session('success') }}
             </div>
@@ -37,7 +39,7 @@
                            text-gray-800 dark:text-gray-200
                            rounded-lg px-4 py-2 text-sm
                            focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                <option value="">All</option>
+                <option value="">All Statuses</option>
                 <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
                 <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
                 <option value="scheduled" {{ request('status') === 'scheduled' ? 'selected' : '' }}>Scheduled</option>
@@ -56,7 +58,50 @@
             @endif
         </form>
 
-        <div class="flex justify-end mb-2">
+        {{-- Top bar: Trash link + Bulk actions + New Post --}}
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-3">
+
+            {{-- Bulk action form — wraps the entire table --}}
+            <form id="bulk-form"
+                  action="{{ route('admin.posts.bulk') }}"
+                  method="POST"
+                  class="flex items-center gap-3">
+                @csrf
+
+                <select name="action"
+                        id="bulk-action-select"
+                        class="border border-gray-300 dark:border-gray-600
+                               bg-white dark:bg-gray-800
+                               text-gray-800 dark:text-gray-200
+                               rounded-lg px-3 py-2 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option value="">Bulk Actions</option>
+                    @can('publish posts')
+                        <option value="publish">Publish Selected</option>
+                        <option value="draft">Set to Draft</option>
+                    @endcan
+                    @can('delete own posts')
+                        <option value="trash">Move to Trash</option>
+                    @endcan
+                    @can('delete all posts')
+                        <option value="delete">Delete Permanently</option>
+                    @endcan
+                </select>
+
+                <button type="button"
+                        id="bulk-apply-btn"
+                        class="px-4 py-2 bg-gray-700 dark:bg-gray-600
+                               hover:bg-gray-800 dark:hover:bg-gray-500
+                               text-white text-sm rounded-lg transition">
+                    Apply
+                </button>
+
+                <span id="selected-count"
+                      class="text-xs text-gray-400 dark:text-gray-500">
+                    0 selected
+                </span>
+            </form>
+
             <div class="flex items-center gap-3">
 
                 @php
@@ -71,7 +116,8 @@
                               text-red-600 dark:text-red-400
                               bg-red-50 dark:bg-red-950
                               border border-red-200 dark:border-red-800
-                              rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors">
+                              rounded-lg hover:bg-red-100 dark:hover:bg-red-900
+                              transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -84,7 +130,8 @@
                               text-gray-500 dark:text-gray-400
                               bg-gray-50 dark:bg-gray-800
                               border border-gray-200 dark:border-gray-700
-                              rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                              rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                              transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -112,20 +159,37 @@
                               text-gray-500 dark:text-gray-400
                               uppercase text-xs tracking-wider">
                 <tr>
+                    {{-- Select All checkbox --}}
+                    <th class="px-4 py-4 w-10">
+                        <input type="checkbox"
+                               id="select-all"
+                               class="rounded border-gray-300 dark:border-gray-600
+                                          text-indigo-600 focus:ring-indigo-400">
+                    </th>
                     <th class="px-5 py-4">Cover</th>
                     <th class="px-5 py-4">Title</th>
                     <th class="px-5 py-4">Category</th>
                     <th class="px-5 py-4">Status</th>
                     <th class="px-5 py-4">Featured</th>
-                    <th class="px-5 py-4">Author</th>
                     <th class="px-5 py-4">Views</th>
+                    <th class="px-5 py-4">Author</th>
                     <th class="px-5 py-4">Created</th>
                     <th class="px-5 py-4 text-right">Actions</th>
                 </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-400 dark:divide-gray-700">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                 @forelse($posts as $post)
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition align-middle">
+
+                        {{-- Row checkbox --}}
+                        <td class="px-4 py-3">
+                            <input type="checkbox"
+                                   name="post_ids[]"
+                                   value="{{ $post->id }}"
+                                   form="bulk-form"
+                                   class="post-checkbox rounded border-gray-300 dark:border-gray-600
+                                              text-indigo-600 focus:ring-indigo-400">
+                        </td>
 
                         <td class="px-5 py-3">
                             <img src="{{ $post->cover_image_url }}"
@@ -169,24 +233,25 @@
 
                         <td class="px-5 py-3">
                             @if($post->is_featured)
-                                <span class="text-yellow-500 text-lg" title="Featured">★</span>
+                                <span class="text-yellow-500 text-lg">★</span>
                             @else
                                 <span class="text-gray-300 dark:text-gray-600 text-lg">☆</span>
                             @endif
                         </td>
 
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-400">
-                            {{ $post->user->name ?? '—' }}
-                        </td>
                         <td class="px-5 py-3 text-gray-600 dark:text-gray-400 text-xs">
                             {{ $post->formatted_views }}
                         </td>
+
+                        <td class="px-5 py-3 text-gray-600 dark:text-gray-400">
+                            {{ $post->user->name ?? '—' }}
+                        </td>
+
                         <td class="px-5 py-3 text-gray-400 dark:text-gray-500 text-xs">
                             {{ $post->created_at->format('d M Y') }}
                         </td>
 
                         <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
-
                             <a href="{{ route('admin.posts.show', $post) }}"
                                class="text-gray-500 dark:text-gray-400
                                           hover:text-gray-800 dark:hover:text-white
@@ -217,13 +282,12 @@
                                     </button>
                                 </form>
                             @endif
-
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center
-                                                   text-gray-400 dark:text-gray-500">
+                        <td colspan="10"
+                            class="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                             No posts found.
                             <a href="{{ route('admin.posts.create') }}"
                                class="text-indigo-600 dark:text-indigo-400 hover:underline">
@@ -241,4 +305,87 @@
         </div>
 
     </div>
+
+    <script>
+        /*
+        |--------------------------------------------------------------------------
+        | Bulk Post Actions JavaScript
+        |--------------------------------------------------------------------------
+        */
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const selectAll     = document.getElementById('select-all');
+            const checkboxes    = document.querySelectorAll('.post-checkbox');
+            const selectedCount = document.getElementById('selected-count');
+            const applyBtn      = document.getElementById('bulk-apply-btn');
+            const actionSelect  = document.getElementById('bulk-action-select');
+            const bulkForm      = document.getElementById('bulk-form');
+
+            /*
+            | Update the "X selected" counter when any checkbox changes
+            */
+            function updateCount() {
+                const checked = document.querySelectorAll('.post-checkbox:checked').length;
+                selectedCount.textContent = checked + ' selected';
+            }
+
+            /*
+            | Select All checkbox — checks/unchecks all row checkboxes
+            */
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateCount();
+            });
+
+            /*
+            | Individual checkbox — update count and sync select-all state
+            */
+            checkboxes.forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    updateCount();
+
+                    /*
+                    | If all are checked, check the select-all box.
+                    | If any is unchecked, uncheck the select-all box.
+                    */
+                    const allChecked = document.querySelectorAll('.post-checkbox:checked').length === checkboxes.length;
+                    selectAll.checked = allChecked;
+                });
+            });
+
+            /*
+            | Apply button — validate then submit with confirmation for destructive actions
+            */
+            applyBtn.addEventListener('click', function () {
+                const action  = actionSelect.value;
+                const checked = document.querySelectorAll('.post-checkbox:checked').length;
+
+                if (!action) {
+                    alert('Please select an action from the dropdown.');
+                    return;
+                }
+
+                if (checked === 0) {
+                    alert('Please select at least one post.');
+                    return;
+                }
+
+                /*
+                | Require confirmation for destructive actions.
+                */
+                if (action === 'trash' || action === 'delete') {
+                    const word    = action === 'delete' ? 'permanently delete' : 'move to trash';
+                    const plural  = checked === 1 ? 'post' : 'posts';
+                    const confirm = window.confirm(
+                        `Are you sure you want to ${word} ${checked} ${plural}?\n\n` +
+                        (action === 'delete' ? 'This action CANNOT be undone.' : 'They can be restored from trash.')
+                    );
+                    if (!confirm) return;
+                }
+
+                bulkForm.submit();
+            });
+
+        });
+    </script>
 </x-app-layout>

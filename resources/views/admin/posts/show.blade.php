@@ -198,6 +198,32 @@
                             {{ $post->updated_at->format('d M Y') }}
                         </span>
                     </div>
+
+                    {{-- Reactions breakdown --}}
+                    <div class="pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 block mb-2">
+                            Reactions
+                        </span>
+                        @php
+                            $reactionData = $post->getReactionCounts();
+                            $totalReactions = array_sum($reactionData);
+                        @endphp
+                        @if($totalReactions > 0)
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(\App\Models\Reaction::DISPLAY as $type => $display)
+                                    @if($reactionData[$type] > 0)
+                                        <span class="flex items-center gap-1 px-2 py-1
+                                 bg-gray-50 dark:bg-gray-700
+                                 rounded-lg text-xs text-gray-600 dark:text-gray-400">
+                        {{ $display['emoji'] }} {{ $reactionData[$type] }}
+                                </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @else
+                            <span class="text-xs text-gray-400 dark:text-gray-500">No reactions yet</span>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- AI Metadata --}}

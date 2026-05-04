@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AutosaveController;
+use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\ClapController;
 use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
+use App\Http\Controllers\Frontend\ReactionController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\CategoryController;
@@ -32,6 +36,17 @@ Route::get('/tag/{slug}',               [TagPageController::class,      'show'])
 
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 
+/*
+|--------------------------------------------------------------------------
+| RSS Feed Routes
+|--------------------------------------------------------------------------
+| These must be publicly accessible — no auth middleware.
+| RSS readers are automated bots that do not have sessions.
+*/
+Route::get('/feed', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.index');
+Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
+Route::get('/category/{slug}/feed', [\App\Http\Controllers\FeedController::class, 'category'])->name('feed.category');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Comments
     Route::post('/comments', [BlogController::class, 'storeComment'])->name('comments.store');
@@ -48,6 +63,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/authors/{author}/follow', [FollowController::class, 'toggle'])->name('authors.follow');
     Route::get('/following', [FollowController::class, 'following'])->name('following.index');
     Route::get('/followers', [FollowController::class, 'followers'])->name('followers.index');
+
+    /*
+| Reactions — authenticated verified users only
+| Cannot react to your own post (enforced in blade, not route)
+*/
+    Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
 
 });
 
@@ -83,7 +104,6 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
         // route names = admin.profile.edit, admin.profile.update, etc.
 
         Route::middleware(['permission:access admin panel'])->group(function () {
-
             // Trash Routes
             Route::get('posts/trash',              [PostController::class, 'trash'])->name('posts.trash');
             Route::patch('posts/{id}/restore',     [PostController::class, 'restore'])->name('posts.restore');
@@ -93,6 +113,14 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::resource('posts',      PostController::class);
             Route::resource('categories', CategoryController::class);
             Route::resource('tags',       TagController::class);
+
+            Route::get('/admin/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+
+            Route::post('/admin/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
+
+            Route::put('/admin/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
+            Route::delete('/admin/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+
         });
 
         Route::middleware(['permission:delete comments'])->group(function () {
@@ -102,6 +130,7 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
         });
 
         Route::middleware(['role:admin'])->group(function () {
+
             Route::resource('users',       UserController::class)->except(['create', 'store']);
             Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
             Route::resource('roles',       RoleController::class);

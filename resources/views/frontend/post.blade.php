@@ -58,13 +58,6 @@
                                           hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     {{ $post->user->display_name }}
                                 </a>
-{{--                                <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">--}}
-{{--                                    <span>{{ $post->published_at?->format('d M Y') ?? $post->created_at->format('d M Y') }}</span>--}}
-{{--                                    <span>·</span>--}}
-{{--                                    <span>{{ max(1, ceil(str_word_count(strip_tags($post->content)) / 200)) }} min read</span>--}}
-{{--                                    <span>·</span>--}}
-{{--                                    <span>{{ $comments->count() }} {{ Str::plural('comment', $comments->count()) }}</span>--}}
-{{--                                </div>--}}
 
                                 <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
                                     <span>{{ $post->published_at?->format('d M Y') ?? $post->created_at->format('d M Y') }}</span>
@@ -166,6 +159,95 @@
                             dark:prose-blockquote:text-gray-400">
                     {!! $post->content !!}
                 </div>
+
+
+                {{-- =============================================
+                                REACTIONS SECTION
+                 ============================================= --}}
+                @if(auth()->check() && $post->user_id === auth()->id())
+                    {{-- Post owner sees read-only reaction counts --}}
+                    <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
+                        Readers have reacted {{ number_format(array_sum($reactionCounts)) }} times
+                    </p>
+                @else
+                    {{-- Reaction buttons shown to everyone else --}}
+                    {{-- ... the reaction buttons code above ... --}}
+                    <div class="py-6 border-t border-gray-100 dark:border-gray-800">
+
+                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 text-center">
+                            How did this make you feel?
+                        </p>
+
+                        <div class="flex items-center justify-center gap-3 flex-wrap"
+                             id="reactions-container"
+                             data-post-id="{{ $post->id }}"
+                             data-user-reaction="{{ $userReaction ?? '' }}">
+
+                            @foreach(\App\Models\Reaction::DISPLAY as $type => $display)
+                                @php
+                                    $isActive = $userReaction === $type;
+                                    $count    = $reactionCounts[$type] ?? 0;
+                                @endphp
+
+                                {{-- Each reaction button --}}
+                                <button
+                                    type="button"
+                                    data-reaction-type="{{ $type }}"
+                                    class="reaction-btn flex flex-col items-center gap-1
+                       px-4 py-2.5 rounded-2xl border-2 transition-all duration-200
+                       {{ $isActive
+                           ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950 scale-105'
+                           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950' }}
+                       @guest cursor-default @endguest"
+                                    @guest disabled @endguest
+                                    title="{{ $display['label'] }}{{ auth()->guest() ? ' (login to react)' : '' }}">
+
+                                    <span class="text-xl leading-none">{{ $display['emoji'] }}</span>
+                                    <span class="text-xs font-semibold
+                             {{ $isActive
+                                 ? 'text-indigo-600 dark:text-indigo-400'
+                                 : 'text-gray-500 dark:text-gray-400' }}"
+                                          data-reaction-count="{{ $type }}">
+                    {{ $count > 0 ? $count : '' }}
+                </span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">
+                    {{ $display['label'] }}
+                </span>
+                                </button>
+                            @endforeach
+
+                        </div>
+
+                        {{-- Login prompt for guests --}}
+                        @guest
+                            <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-3">
+                                <a href="{{ route('login') }}"
+                                   class="text-indigo-500 dark:text-indigo-400 hover:underline">
+                                    Log in
+                                </a>
+                                to react to this post
+                            </p>
+                        @endguest
+
+                        {{-- Total reactions count --}}
+                        @php $totalReactions = array_sum($reactionCounts); @endphp
+                        @if($totalReactions > 0)
+                            <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-2"
+                               id="reactions-total">
+                                {{ number_format($totalReactions) }}
+                                {{ Str::plural('reaction', $totalReactions) }}
+                            </p>
+                        @else
+                            <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-2"
+                               id="reactions-total">
+                                Be the first to react
+                            </p>
+                        @endif
+
+                    </div>
+                @endif
+
+
 
                 {{-- =============================================
                      CLAP BUTTON SECTION
@@ -925,6 +1007,151 @@
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') closeMobileToc();
             });
+        });
+    </script>
+
+    <script>
+        /*
+        |--------------------------------------------------------------------------
+        | Reactions JavaScript
+        |--------------------------------------------------------------------------
+        */
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const container  = document.getElementById('reactions-container');
+            if (!container) return;
+
+            const csrfToken  = document.querySelector('meta[name="csrf-token"]')?.content;
+            const postId     = container.dataset.postId;
+            const buttons    = container.querySelectorAll('.reaction-btn');
+            const totalEl    = document.getElementById('reactions-total');
+
+            /*
+            | Track which reaction is currently active for this user.
+            | Read from data attribute set by blade (server state).
+            */
+            let activeType = container.dataset.userReaction || null;
+
+            /*
+            | isRequesting prevents double-clicks from sending multiple requests.
+            */
+            let isRequesting = false;
+
+            buttons.forEach(function (button) {
+                button.addEventListener('click', async function () {
+
+                    /*
+                    | Do not process if already waiting for a response
+                    | or if button is disabled (guest user).
+                    */
+                    if (isRequesting || button.disabled) return;
+                    isRequesting = true;
+
+                    const clickedType = button.dataset.reactionType;
+
+                    try {
+                        const response = await fetch(`/posts/${postId}/react`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN':  csrfToken,
+                                'Content-Type':  'application/json',
+                                'Accept':        'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: JSON.stringify({ type: clickedType }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            /*
+                            | Update the active type tracking variable.
+                            | null means no reaction (was toggled off).
+                            */
+                            activeType = data.active_type;
+
+                            /*
+                            | Update all button counts and active states.
+                            */
+                            updateReactionUI(data.counts, data.active_type, data.total);
+                        }
+
+                    } catch (err) {
+                        console.error('Reaction error:', err);
+                    } finally {
+                        isRequesting = false;
+                    }
+                });
+            });
+
+            /*
+            |--------------------------------------------------------------------------
+            | updateReactionUI() — Refresh all buttons after server response
+            |--------------------------------------------------------------------------
+            */
+            function updateReactionUI(counts, activeType, total) {
+
+                buttons.forEach(function (btn) {
+                    const type     = btn.dataset.reactionType;
+                    const countEl  = btn.querySelector(`[data-reaction-count="${type}"]`);
+                    const isActive = activeType === type;
+
+                    /*
+                    | Update the count display.
+                    | Show empty string instead of "0" to keep the UI clean.
+                    */
+                    if (countEl) {
+                        countEl.textContent = counts[type] > 0 ? counts[type] : '';
+                    }
+
+                    /*
+                    | Update active/inactive border and background styling.
+                    */
+                    if (isActive) {
+                        btn.classList.add(
+                            'border-indigo-400', 'dark:border-indigo-500',
+                            'bg-indigo-50', 'dark:bg-indigo-950', 'scale-105'
+                        );
+                        btn.classList.remove(
+                            'border-gray-200', 'dark:border-gray-700',
+                            'bg-white', 'dark:bg-gray-900'
+                        );
+                        if (countEl) {
+                            countEl.classList.add('text-indigo-600', 'dark:text-indigo-400');
+                            countEl.classList.remove('text-gray-500', 'dark:text-gray-400');
+                        }
+                    } else {
+                        btn.classList.remove(
+                            'border-indigo-400', 'dark:border-indigo-500',
+                            'bg-indigo-50', 'dark:bg-indigo-950', 'scale-105'
+                        );
+                        btn.classList.add(
+                            'border-gray-200', 'dark:border-gray-700',
+                            'bg-white', 'dark:bg-gray-900'
+                        );
+                        if (countEl) {
+                            countEl.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+                            countEl.classList.add('text-gray-500', 'dark:text-gray-400');
+                        }
+                    }
+                });
+
+                /*
+                | Update total reactions text
+                */
+                if (totalEl) {
+                    totalEl.textContent = total > 0
+                        ? number_format(total) + (total === 1 ? ' reaction' : ' reactions')
+                        : 'Be the first to react';
+                }
+            }
+
+            /*
+            | Simple number formatter matching PHP's number_format()
+            */
+            function number_format(n) {
+                return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
         });
     </script>
 

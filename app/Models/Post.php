@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Models\Clap;
 use App\Models\Bookmark;
+use App\Models\Reaction;
 
 class Post extends Model
 {
@@ -352,5 +353,42 @@ class Post extends Model
         }
 
         return number_format($views);
+    }
+
+
+    /*
+| reactions() relationship
+*/
+    public function reactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Reaction::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | getReactionCounts() — Get count of each reaction type for this post
+    |--------------------------------------------------------------------------
+    | Returns an array like:
+    |   ['like' => 5, 'insightful' => 2, 'love' => 8, 'funny' => 1]
+    |
+    | We use a single query with groupBy instead of four separate
+    | COUNT queries — much more efficient.
+    */
+    public function getReactionCounts(): array
+    {
+        $counts = $this->reactions()
+            ->selectRaw('type, COUNT(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        /*
+        | Ensure all four types are present even if count is 0.
+        | This prevents "undefined index" errors in the blade view.
+        */
+        return array_merge(
+            ['like' => 0, 'insightful' => 0, 'love' => 0, 'funny' => 0],
+            $counts
+        );
     }
 }

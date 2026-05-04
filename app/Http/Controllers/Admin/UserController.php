@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Jobs\OptimizeAvatarJob;
 use App\Jobs\SendAccountStatusChangedJob;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -117,6 +118,12 @@ class UserController extends Controller
             $user->syncRoles($request->input('roles', []));
         }
 
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_USER_UPDATED,
+            description: 'Updated user profile for ' . $user->email,
+            model:       $user,
+        );
+
         return redirect()->route('admin.users.index')
             ->with('success', "User '{$user->name}' updated successfully.");
     }
@@ -149,6 +156,12 @@ class UserController extends Controller
         $user->deleteAvatar();
 
         $user->delete();
+
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_USER_DELETED,
+            description: 'Deleted user ' . $user->email,
+            model:       $user,
+        );
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User deleted successfully.');

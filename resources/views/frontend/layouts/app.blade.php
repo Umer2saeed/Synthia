@@ -24,6 +24,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+    {{--
+| RSS Feed Autodiscovery
+|
+| These <link> tags tell browsers and RSS readers that a feed exists.
+| When a user visits Synthia in a browser with an RSS extension installed,
+| the extension automatically detects the feed and offers to subscribe.
+| Without these tags, users have to manually find and enter the feed URL.
+--}}
+    <link rel="alternate"
+          type="application/rss+xml"
+          title="{{ config('app.name') }} — All Posts"
+          href="{{ route('feed.index') }}">
+
+    {{--
+    | If we are on a category page, also advertise the category-specific feed.
+    | $currentCategory is passed by the controller on category pages.
+    --}}
+    @isset($currentCategory)
+        <link rel="alternate"
+              type="application/rss+xml"
+              title="{{ config('app.name') }} — {{ $currentCategory->name }}"
+              href="{{ route('feed.category', $currentCategory->slug) }}">
+    @endisset
+
     {{-- Tailwind via Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

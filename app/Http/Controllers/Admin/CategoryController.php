@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCategoryRequest;
 use App\Http\Requests\Admin\UpdateCategoryRequest;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

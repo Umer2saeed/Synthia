@@ -7,8 +7,10 @@ use App\Http\Requests\Admin\StorePostRequest;
 use App\Http\Requests\Admin\UpdatePostRequest;
 use App\Jobs\OptimizePostCoverJob;
 use App\Jobs\SendPostPublishedNotificationJob;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\PostDraft;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -66,7 +68,11 @@ class PostController extends Controller
         $categories = Category::orderBy('name')->get();
         $tags       = Tag::orderBy('name')->get();
 
-        return view('admin.posts.create', compact('categories', 'tags'));
+        $autosaveDraft = PostDraft::where('user_id', auth()->id())
+            ->whereNull('post_id')
+            ->first();
+
+        return view('admin.posts.create', compact('categories', 'tags', 'autosaveDraft'));
     }
 
     /*
@@ -103,6 +109,25 @@ class PostController extends Controller
             OptimizePostCoverJob::dispatch($post, $validated['cover_image']);
         }
 
+        // After post is created:
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_POST_CREATED,
+            description: 'Created post "' . $post->title . '"',
+            model:       $post,
+        );
+
+        // If post was created as published:
+        if ($post->status === 'published') {
+            ActivityLog::record(
+                action:      ActivityLog::ACTION_POST_PUBLISHED,
+                description: 'Published post "' . $post->title . '"',
+                model:       $post,
+            );
+        }
+
+        PostDraft::where('user_id', auth()->id())->whereNull('post_id')->delete();
+
+
         return redirect()->route('admin.posts.index')
             ->with('success', 'Post created successfully.');
     }
@@ -133,7 +158,11 @@ class PostController extends Controller
         $tags       = Tag::orderBy('name')->get();
         $postTagIds = $post->tags->pluck('id')->toArray();
 
-        return view('admin.posts.edit', compact('post', 'categories', 'tags', 'postTagIds'));
+        $autosaveDraft = PostDraft::where('user_id', auth()->id())
+            ->where('post_id', $post->id)
+            ->first();
+
+        return view('admin.posts.edit', compact('post', 'categories', 'tags', 'postTagIds', 'autosaveDraft'));
     }
 
     /*
@@ -145,16 +174,6 @@ class PostController extends Controller
     */
     public function update(UpdatePostRequest $request, Post $post)
     {
-        /*
-        | Capture the previous status BEFORE updating.
-        | We need to know if status is CHANGING to published.
-        | If it was already published, we do not send another email.
-        |
-        | Example:
-        |   Before: status = 'draft'     → After: status = 'published' → SEND EMAIL
-        |   Before: status = 'published' → After: status = 'published' → DO NOT SEND
-        |   Before: status = 'scheduled' → After: status = 'published' → SEND EMAIL
-        */
         $previousStatus = $post->status;
 
         $validated = $request->validated();
@@ -189,6 +208,26 @@ class PostController extends Controller
             SendPostPublishedNotificationJob::dispatch($post->fresh());
         }
 
+        $wasPublished = $post->getOriginal('status') !== 'published'
+            && $post->status === 'published';
+
+        // After post is updated:
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_POST_UPDATED,
+            description: 'Updated post "' . $post->title . '"',
+            model:       $post,
+        );
+
+        if ($wasPublished) {
+            ActivityLog::record(
+                action:      ActivityLog::ACTION_POST_PUBLISHED,
+                description: 'Published post "' . $post->title . '"',
+                model:       $post,
+            );
+        }
+
+        PostDraft::where('user_id', auth()->id())->where('post_id', $post->id)->delete();
+
         return redirect()->route('admin.posts.index')->with('success', 'Post updated successfully.');
     }
 
@@ -204,6 +243,12 @@ class PostController extends Controller
         $this->authorizePostAccess($post, 'delete');
 
         $post->delete();
+
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_POST_DELETED,
+            description: 'Moved post "' . $post->title . '" to trash',
+            model:       $post,
+        );
 
         return redirect()->route('admin.posts.index')
             ->with('success', 'Post moved to trash.');
@@ -296,6 +341,12 @@ class PostController extends Controller
         $this->authorizePostAccess($post, 'delete');
 
         $post->restore();
+
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_POST_RESTORED,
+            description: 'Restored post "' . $post->title . '" from trash',
+            model:       $post,
+        );
 
         return redirect()->route('admin.posts.trash')
             ->with('success', "Post \"{$post->title}\" restored successfully.");

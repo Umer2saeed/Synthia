@@ -11,6 +11,23 @@ class PostObserver
         private CacheService $cache
     ) {}
 
+
+    private function clearFeedCache(Post $post): void
+    {
+        /*
+        | Clear the main feed ID cache
+        */
+        cache()->forget('rss.feed.main.ids');
+
+        /*
+        | Clear the category-specific feed ID cache
+        */
+        $categoryId = $post->category_id;
+        if ($categoryId) {
+            cache()->forget('rss.feed.category.ids.' . $categoryId);
+        }
+    }
+
     /*
     | Fires after a new post is inserted into the database.
     | New post → home page is stale → blog listing is stale.
@@ -18,6 +35,7 @@ class PostObserver
     public function created(Post $post): void
     {
         $this->cache->clearPostCaches($post);
+        $this->clearFeedCache($post);
     }
 
     /*
@@ -27,6 +45,7 @@ class PostObserver
     public function updated(Post $post): void
     {
         $this->cache->clearPostCaches($post);
+        $this->clearFeedCache($post);
     }
 
     /*
@@ -36,6 +55,7 @@ class PostObserver
     public function deleted(Post $post): void
     {
         $this->cache->clearPostCaches($post);
+        $this->clearFeedCache($post);
     }
 
     /*
@@ -45,5 +65,6 @@ class PostObserver
     public function restored(Post $post): void
     {
         $this->cache->clearPostCaches($post);
+        $this->clearFeedCache($post);
     }
 }
