@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
 use App\Http\Controllers\Admin\BulkPostController;
+use App\Http\Controllers\Frontend\ActivityFeedController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\ClapController;
@@ -70,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 */
     Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
 
+    Route::get('/activity-feed', [ActivityFeedController::class, 'index',])->name('feed.activity');
 });
 
 Route::middleware(['auth'])->name('frontend.')->group(function () {

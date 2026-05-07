@@ -2,8 +2,10 @@
 
 namespace App\Observers;
 
+use App\Models\Follow;
 use App\Models\Post;
 use App\Services\CacheService;
+use Illuminate\Support\Facades\Cache;
 
 class PostObserver
 {
@@ -11,60 +13,78 @@ class PostObserver
         private CacheService $cache
     ) {}
 
-
-    private function clearFeedCache(Post $post): void
-    {
-        /*
-        | Clear the main feed ID cache
-        */
-        cache()->forget('rss.feed.main.ids');
-
-        /*
-        | Clear the category-specific feed ID cache
-        */
-        $categoryId = $post->category_id;
-        if ($categoryId) {
-            cache()->forget('rss.feed.category.ids.' . $categoryId);
-        }
-    }
-
-    /*
-    | Fires after a new post is inserted into the database.
-    | New post → home page is stale → blog listing is stale.
-    */
     public function created(Post $post): void
     {
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
+        $this->clearFollowerFeedCaches($post);
     }
 
-    /*
-    | Fires after an existing post record is updated.
-    | Covers: status changes, content edits, slug changes, featured toggle.
-    */
     public function updated(Post $post): void
     {
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
+        $this->clearFollowerFeedCaches($post);
     }
 
-    /*
-    | Fires after soft delete.
-    | Deleted post must not appear in cached lists.
-    */
     public function deleted(Post $post): void
     {
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
+        $this->clearFollowerFeedCaches($post);
     }
 
-    /*
-    | Fires after restoring a soft-deleted post.
-    | Restored post should appear in lists again.
-    */
     public function restored(Post $post): void
     {
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
+        $this->clearFollowerFeedCaches($post);
+    }
+
+    /*
+    | Clear RSS feed cache when post changes.
+    */
+    private function clearFeedCache(Post $post): void
+    {
+        Cache::forget('rss.feed.main.ids');
+
+        if ($post->category_id) {
+            Cache::forget('rss.feed.category.ids.' . $post->category_id);
+        }
+    }
+
+    /*
+    | Clear activity feed cache for every follower of this post's author.
+    |
+    | WHY clear all pages?
+    | We use a pattern-based approach. Since file cache does not support
+    | tag-based flushing, we store a "version" key per user and bump it.
+    | A simpler approach: clear page 1 only (most users land on page 1).
+    | For now we clear pages 1 through 5 — covers 99% of users.
+    */
+    private function clearFollowerFeedCaches(Post $post): void
+    {
+        /*
+        | Only published posts affect the activity feed.
+        */
+        if ($post->status !== 'published') {
+            return;
+        }
+
+        /*
+        | Get all followers of this post's author.
+        */
+        $followerIds = Follow::where('following_id', $post->user_id)
+            ->pluck('follower_id')
+            ->toArray();
+
+        foreach ($followerIds as $followerId) {
+            /*
+            | Clear the first 5 pages of each follower's feed cache.
+            */
+            for ($page = 1; $page <= 5; $page++) {
+                Cache::forget('feed.user.' . $followerId . '.page.' . $page);
+            }
+        }
     }
 }

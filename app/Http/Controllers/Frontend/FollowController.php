@@ -8,6 +8,7 @@ use App\Models\Follow;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class FollowController extends Controller
 {
@@ -115,6 +116,13 @@ class FollowController extends Controller
         | fresh()->followers()->count() re-queries the DB for accuracy.
         */
         $followersCount = $author->fresh()->followers()->count();
+        /*
+        | Clear the follower's activity feed cache after follow/unfollow.
+        | Their feed changes immediately when they follow or unfollow someone.
+        */
+        for ($page = 1; $page <= 5; $page++) {
+            Cache::forget('feed.user.' . auth()->id() . '.page.' . $page);
+        }
 
         return response()->json([
             'success'         => true,
