@@ -57,4 +57,12 @@ class Follow extends Model
     {
         return $this->belongsTo(User::class, 'following_id');
     }
+
+     /*
+    | The author being followed.
+    */
+    public function followedAuthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'following_id');
+    }
 }

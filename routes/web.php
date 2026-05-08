@@ -3,15 +3,6 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
 use App\Http\Controllers\Admin\BulkPostController;
-use App\Http\Controllers\Frontend\ActivityFeedController;
-use App\Http\Controllers\Frontend\AuthorController;
-use App\Http\Controllers\Frontend\BookmarkController;
-use App\Http\Controllers\Frontend\ClapController;
-use App\Http\Controllers\Frontend\FollowController;
-use App\Http\Controllers\Frontend\FrontendProfileController;
-use App\Http\Controllers\Frontend\ReactionController;
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -22,11 +13,19 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
-// Frontend Controllers
-use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\ActivityFeedController;
+use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BlogController;
+use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\CategoryPageController;
+use App\Http\Controllers\Frontend\ClapController;
+use App\Http\Controllers\Frontend\FollowController;
+use App\Http\Controllers\Frontend\FrontendProfileController;
+use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\ReactionController;
+use App\Http\Controllers\Frontend\ReaderDashboardController;
 use App\Http\Controllers\Frontend\TagPageController;
+use Illuminate\Support\Facades\Route;
 
 // Frontend routes
 Route::get('/',                         [HomeController::class,         'index'])->name('home');
@@ -81,6 +80,8 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
     Route::put('/profile',           [FrontendProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password',  [FrontendProfileController::class, 'updatePassword'])->name('profile.password');
     Route::delete('/profile/avatar', [FrontendProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+
+    Route::get('/dashboard', [ReaderDashboardController::class,'index'])->name('reader.dashboard');
 });
 
 // Auth Routes (Breeze handles login/register/etc.)

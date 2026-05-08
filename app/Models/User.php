@@ -225,6 +225,15 @@ class User extends Authenticatable implements MustVerifyEmail
             ->delete();
     }
 
+    /*
+    | Reading history relationship.
+    */
+    public function readingHistory()
+    {
+        return $this->hasMany(ReadingHistory::class);
+    }
+
+
     public function deleteAvatar(): void
     {
         if ($this->avatar) {

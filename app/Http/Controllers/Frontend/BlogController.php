@@ -319,6 +319,8 @@ class BlogController extends Controller
 
         $comment->load('user');
 
+        // After comment is created, clear dashboard cache
+        Cache::forget('reader.dashboard.stats.' . auth()->id());
         SendNewCommentNotificationJob::dispatch($comment);
 
         $html = view('frontend.partials._comment', compact('comment'))->render();
