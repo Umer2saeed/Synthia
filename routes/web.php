@@ -24,6 +24,7 @@ use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\ReaderDashboardController;
+use App\Http\Controllers\Frontend\ReadingListController;
 use App\Http\Controllers\Frontend\TagPageController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,13 +65,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/following', [FollowController::class, 'following'])->name('following.index');
     Route::get('/followers', [FollowController::class, 'followers'])->name('followers.index');
 
-    /*
-| Reactions — authenticated verified users only
-| Cannot react to your own post (enforced in blade, not route)
-*/
+   // Reactions
     Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
-
+    // Activity Feed
     Route::get('/activity-feed', [ActivityFeedController::class, 'index',])->name('feed.activity');
+
 });
 
 Route::middleware(['auth'])->name('frontend.')->group(function () {
@@ -82,6 +81,25 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
     Route::delete('/profile/avatar', [FrontendProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
     Route::get('/dashboard', [ReaderDashboardController::class,'index'])->name('reader.dashboard');
+});
+
+/*
+| Reading Lists
+*/
+Route::prefix('reading-lists')->name('reading-lists.')->group(function () {
+    // Public route — anyone can view a public list
+    Route::get('/{readingList}/{slug}', [ReadingListController::class, 'show'])->name('show');
+});
+
+Route::middleware(['auth', 'verified'])->prefix('reading-lists')->name('reading-lists.')->group(function () {
+
+    Route::get('/',                                    [ReadingListController::class, 'index'])->name('index');
+    Route::post('/',                                   [ReadingListController::class, 'store'])->name('store');
+    Route::put('/{readingList}',                       [ReadingListController::class, 'update'])->name('update');
+    Route::delete('/{readingList}',                    [ReadingListController::class, 'destroy'])->name('destroy');
+    Route::post('/{readingList}/items',                [ReadingListController::class, 'toggleItem'])->name('items.toggle');
+    Route::get('/user-lists',                          [ReadingListController::class, 'getUserLists'])->name('user-lists');
+
 });
 
 // Auth Routes (Breeze handles login/register/etc.)
