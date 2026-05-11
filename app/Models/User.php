@@ -13,6 +13,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Follow;
+use App\Models\UserBadge;
+use App\Models\Badge;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -254,6 +256,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function readingLists(): HasMany
     {
         return $this->hasMany(ReadingList::class);
+    }
+
+    public function badges()
+    {
+        return $this->belongsToMany(Badge::class, 'user_badges')
+            ->withPivot('earned_at', 'awarded_by')
+            ->orderByPivot('earned_at', 'desc');
+    }
+
+    public function userBadges(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserBadge::class);
+    }
+
+    /*
+    | Check if this user already has a specific badge.
+    */
+    public function hasBadge(int $badgeId): bool
+    {
+        return $this->userBadges()->where('badge_id', $badgeId)->exists();
     }
 
 }

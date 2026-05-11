@@ -14,7 +14,8 @@ class ReaderDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = auth()->user()->load(['badges']);
+
 
         $dashboardData = $this->buildDashboardData($user);
 

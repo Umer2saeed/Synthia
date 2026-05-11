@@ -457,6 +457,39 @@
 
                     </div>
 
+                    {{-- BADGES --}}
+                    @if($user->badges->isNotEmpty())
+                        <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 overflow-hidden">
+
+                            <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800/80">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center">
+                                    <span class="text-sm">🏅</span>
+                                </div>
+                                <div>
+                                    <h2 class="text-sm font-semibold text-gray-800 dark:text-white">
+                                        Badges
+                                    </h2>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">
+                                        {{ $user->badges->count() }}
+                                        {{ Str::plural('achievement', $user->badges->count()) }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="p-5 flex flex-wrap gap-2">
+                                @foreach($user->badges as $badge)
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5
+                                         {{ $badge->color }}
+                                         rounded-full text-xs font-medium border border-current/10"
+                                                      title="{{ $badge->description }}">
+                                        {{ $badge->icon }} {{ $badge->name }}
+                                    </span>
+                                @endforeach
+                            </div>
+
+                        </div>
+                    @endif
+
                     {{-- QUICK LINKS --}}
                     <div class="rounded-2xl bg-white dark:bg-gray-900
                                 border border-gray-200 dark:border-gray-800/80

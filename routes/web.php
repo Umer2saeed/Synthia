@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
+use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PostController;
+use App\Http\Controllers\Admin\PostRevisionController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TagController;
@@ -27,6 +29,9 @@ use App\Http\Controllers\Frontend\ReaderDashboardController;
 use App\Http\Controllers\Frontend\ReadingListController;
 use App\Http\Controllers\Frontend\TagPageController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Frontend\SeriesController;
+use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
+
 
 // Frontend routes
 Route::get('/',                         [HomeController::class,         'index'])->name('home');
@@ -37,6 +42,13 @@ Route::get('/tag/{slug}',               [TagPageController::class,      'show'])
 
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 
+
+
+/*
+| Public Series Routes
+*/
+Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
+Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
 /*
 |--------------------------------------------------------------------------
 | RSS Feed Routes
@@ -130,17 +142,28 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::patch('posts/{id}/restore',     [PostController::class, 'restore'])->name('posts.restore');
             Route::delete('posts/{id}/force-delete', [PostController::class, 'forceDelete'])->name('posts.force-delete');
 
+
+            // Post Revisions — nested under posts - these 3 routes are added before the post resource to avoid the conflict
+            Route::get('posts/{post}/revisions',                        [PostRevisionController::class, 'index'])->name('posts.revisions.index');
+            Route::get('posts/{post}/revisions/{revision}',             [PostRevisionController::class, 'show'])->name('posts.revisions.show');
+            Route::post('posts/{post}/revisions/{revision}/restore',    [PostRevisionController::class, 'restore'])->name('posts.revisions.restore');
             // Resource Routes after custom routes
             Route::resource('posts',      PostController::class);
             Route::resource('categories', CategoryController::class);
             Route::resource('tags',       TagController::class);
 
-            Route::get('/admin/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+            Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
-            Route::post('/admin/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
+            Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
 
-            Route::put('/admin/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
-            Route::delete('/admin/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+            /*
+             | POST not PUT — JavaScript fetch sends POST.
+             | No /admin prefix — already applied by the group prefix('admin').
+             */
+            Route::post('/posts/autosave',   [AutosaveController::class, 'save'])->name('posts.autosave');
+            Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+
+            Route::resource('series', AdminSeriesController::class);
 
         });
 
@@ -158,6 +181,10 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::resource('permissions', PermissionController::class);
             Route::get('users/{user}/roles', [UserRoleController::class, 'edit'])->name('users.roles.edit');
             Route::put('users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles.update');
+
+            Route::get('badges',          [BadgeController::class, 'index'])->name('badges.index');
+            Route::post('badges/award',   [BadgeController::class, 'award'])->name('badges.award');
+            Route::post('badges/revoke',  [BadgeController::class, 'revoke'])->name('badges.revoke');
         });
 
     });

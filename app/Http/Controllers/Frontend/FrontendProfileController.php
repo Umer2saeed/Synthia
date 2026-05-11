@@ -23,7 +23,7 @@ class FrontendProfileController extends Controller
         | Load relationships needed on the profile page.
         | We eager load to avoid N+1 queries in the view.
         */
-        $user->load('roles');
+        $user->load('roles', 'badges');
         $user->loadCount(['posts', 'comments']);
 
         /*

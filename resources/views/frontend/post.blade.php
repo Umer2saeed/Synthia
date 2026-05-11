@@ -195,6 +195,110 @@
                     </div>
                 @endif
 
+
+                {{-- Series Navigation Banner --}}
+                @if($postSeries)
+                    <div class="mb-6 rounded-2xl overflow-hidden
+                border border-indigo-100 dark:border-indigo-900
+                bg-indigo-50 dark:bg-indigo-950/50">
+
+                        {{-- Series header --}}
+                        <div class="px-5 py-4 border-b border-indigo-100 dark:border-indigo-900">
+                            <a href="{{ route('series.show', $postSeries->slug) }}"
+                               class="flex items-center gap-3 group">
+                                <img src="{{ $postSeries->cover_image_url }}"
+                                     alt="{{ $postSeries->title }}"
+                                     class="w-10 h-10 rounded-xl object-cover shrink-0
+                            border border-indigo-200 dark:border-indigo-800">
+                                <div>
+                                    <p class="text-xs font-semibold text-indigo-500 dark:text-indigo-400
+                               uppercase tracking-widest mb-0.5">
+                                        Series
+                                    </p>
+                                    <h3 class="text-sm font-bold text-indigo-900 dark:text-indigo-200
+                                group-hover:text-indigo-600 dark:group-hover:text-indigo-400
+                                transition-colors">
+                                        {{ $postSeries->title }}
+                                    </h3>
+                                </div>
+                                <div class="ml-auto text-xs text-indigo-400 dark:text-indigo-500">
+                                    {{ $seriesAllPosts->count() }}
+                                    {{ Str::plural('part', $seriesAllPosts->count()) }}
+                                </div>
+                            </a>
+                        </div>
+
+                        {{-- Prev / Next navigation --}}
+                        <div class="grid grid-cols-2 divide-x divide-indigo-100 dark:divide-indigo-900">
+
+                            {{-- Previous --}}
+                            <div class="p-4">
+                                @if($seriesPrev)
+                                    <a href="{{ route('blog.post', $seriesPrev->slug) }}"
+                                       class="group flex items-start gap-2">
+                                        <svg class="w-4 h-4 mt-0.5 shrink-0
+                                    text-indigo-400 dark:text-indigo-500
+                                    group-hover:text-indigo-600 dark:group-hover:text-indigo-300
+                                    transition-colors"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                        <div>
+                                            <p class="text-xs text-indigo-400 dark:text-indigo-500 mb-0.5">
+                                                Previous
+                                            </p>
+                                            <p class="text-xs font-semibold
+                                       text-indigo-700 dark:text-indigo-300
+                                       group-hover:text-indigo-900 dark:group-hover:text-indigo-100
+                                       transition-colors line-clamp-2">
+                                                {{ $seriesPrev->title }}
+                                            </p>
+                                        </div>
+                                    </a>
+                                @else
+                                    <p class="text-xs text-indigo-300 dark:text-indigo-700 italic">
+                                        First in series
+                                    </p>
+                                @endif
+                            </div>
+
+                            {{-- Next --}}
+                            <div class="p-4 text-right">
+                                @if($seriesNext)
+                                    <a href="{{ route('blog.post', $seriesNext->slug) }}"
+                                       class="group flex items-start justify-end gap-2">
+                                        <div>
+                                            <p class="text-xs text-indigo-400 dark:text-indigo-500 mb-0.5">
+                                                Next
+                                            </p>
+                                            <p class="text-xs font-semibold
+                                       text-indigo-700 dark:text-indigo-300
+                                       group-hover:text-indigo-900 dark:group-hover:text-indigo-100
+                                       transition-colors line-clamp-2">
+                                                {{ $seriesNext->title }}
+                                            </p>
+                                        </div>
+                                        <svg class="w-4 h-4 mt-0.5 shrink-0
+                                    text-indigo-400 dark:text-indigo-500
+                                    group-hover:text-indigo-600 dark:group-hover:text-indigo-300
+                                    transition-colors"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @else
+                                    <p class="text-xs text-indigo-300 dark:text-indigo-700 italic">
+                                        Last in series
+                                    </p>
+                                @endif
+                            </div>
+
+                        </div>
+                    </div>
+                @endif
+
                 {{-- =============================================
                      ARTICLE CONTENT
                      id="post-content" is required by:

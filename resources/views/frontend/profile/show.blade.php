@@ -23,6 +23,20 @@
                 <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
                         dark:border-gray-800 p-6 text-center">
 
+                    {{-- Badges --}}
+                    @if($user->badges->isNotEmpty())
+                        <div class="mb-2 gap-2">
+                            @foreach($user->badges as $badge)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1
+                                 {{ $badge->color }}
+                                 rounded-full text-xs font-medium border border-current/20"
+                                      title="{{ $badge->description }}">
+                                {{ $badge->icon }} {{ $badge->name }}
+                            </span>
+                            @endforeach
+                        </div>
+                    @endif
+
                     {{-- Avatar --}}
                     <div class="relative inline-block mb-4">
                         <img src="{{ $user->avatar_url }}"
@@ -55,7 +69,7 @@
                     @endphp
                     <span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium {{ $roleColor }}">
                     {{ ucfirst($role?->name ?? 'member') }}
-                </span>
+                    </span>
 
                     {{-- Bio --}}
                     @if($user->bio)
@@ -75,6 +89,7 @@
                         Edit Profile
                     </a>
                 </div>
+
 
                 <div class="space-y-3">
                     {{-- existing stats --}}

@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Follow;
 use App\Models\Post;
+use App\Services\BadgeService;
 use App\Services\CacheService;
 use Illuminate\Support\Facades\Cache;
 
@@ -18,6 +19,10 @@ class PostObserver
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
         $this->clearFollowerFeedCaches($post);
+
+        if ($post->status === 'published') {
+            app(BadgeService::class)->checkAndAward($post->user);
+        }
     }
 
     public function updated(Post $post): void
@@ -25,6 +30,14 @@ class PostObserver
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
         $this->clearFollowerFeedCaches($post);
+
+        /*
+        | Check badges when a post becomes published.
+        | getOriginal('status') is the value BEFORE the update.
+        */
+        if ($post->wasChanged('status') && $post->status === 'published') {
+            app(BadgeService::class)->checkAndAward($post->user);
+        }
     }
 
     public function deleted(Post $post): void

@@ -280,6 +280,69 @@
                         @endif
                     </div>
 
+                    {{-- Series Assignment --}}
+                    <div class="bg-white dark:bg-gray-800
+                        shadow rounded-xl
+                        border border-gray-200 dark:border-gray-700
+                        p-5">
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200
+               border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
+                            Series
+                        </h3>
+
+                        @if(isset($seriesList) && $seriesList->isNotEmpty())
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium
+                               text-gray-600 dark:text-gray-400 mb-1">
+                                        Assign to Series
+                                    </label>
+                                    <select name="series_id"
+                                            class="w-full border border-gray-300 dark:border-gray-600
+                               bg-white dark:bg-gray-900
+                               text-gray-800 dark:text-gray-200
+                               rounded-lg px-3 py-2 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                        <option value="">— No Series —</option>
+                                        @foreach($seriesList as $s)
+                                            <option value="{{ $s->id }}"
+                                                {{ old('series_id') == $s->id ? 'selected' : '' }}>
+                                                {{ $s->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-medium
+                               text-gray-600 dark:text-gray-400 mb-1">
+                                        Order in Series
+                                    </label>
+                                    <input type="number"
+                                           name="series_order"
+                                           value="{{ old('series_order', 1) }}"
+                                           min="1"
+                                           class="w-full border border-gray-300 dark:border-gray-600
+                              bg-white dark:bg-gray-900
+                              text-gray-800 dark:text-gray-200
+                              rounded-lg px-3 py-2 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                        Position of this post in the series.
+                                    </p>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                No series yet.
+                                <a href="{{ route('admin.series.create') }}"
+                                   class="text-indigo-500 dark:text-indigo-400 hover:underline">
+                                    Create one first
+                                </a>.
+                            </p>
+                        @endif
+                    </div>
+
                     {{-- Cover Image --}}
                     <div class="bg-white dark:bg-gray-800
                                 shadow rounded-xl

@@ -7,9 +7,9 @@
     <div class="py-8 max-w-5xl mx-auto px-4">
 
         {{-- =============================================
-     AUTOSAVE RESTORE BANNER
-     Shown only when an unsaved draft exists
-============================================= --}}
+             AUTOSAVE RESTORE BANNER
+             Shown only when an unsaved draft exists
+        ============================================= --}}
         @if(isset($autosaveDraft) && $autosaveDraft)
             <div data-post-id="{{ $post->id }}" id="autosave-banner" class="mb-5 flex items-center justify-between gap-4
                 px-4 py-3 rounded-xl
@@ -50,10 +50,36 @@
             <span id="autosave-status-text">Saving...</span>
         </div>
 
-        <div>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
-                {{ Str::limit($post->title, 60) }}
-            </h2>
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
+                    {{ Str::limit($post->title, 60) }}
+                </h2>
+            </div>
+
+            <div>
+                {{-- Revisions link --}}
+                @if($post->revisions()->exists())
+                    <a href="{{ route('admin.posts.revisions.index', $post) }}"
+                       class="flex items-center gap-1.5 px-3 py-2 text-sm
+                  text-gray-500 dark:text-gray-400
+                  bg-gray-50 dark:bg-gray-800
+                  border border-gray-200 dark:border-gray-700
+                  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700
+                  transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Revisions
+                        <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full
+                         bg-gray-200 dark:bg-gray-600
+                         text-gray-600 dark:text-gray-300">
+                            {{ $post->revisions()->count() }}
+                        </span>
+                    </a>
+                @endif
+            </div>
         </div>
 
         <form action="{{ route('admin.posts.update', $post) }}"
@@ -279,6 +305,69 @@
                                     </label>
                                 @endforeach
                             </div>
+                        @endif
+                    </div>
+
+                    {{-- Series Assignment --}}
+                    <div class="bg-white dark:bg-gray-800
+                        shadow rounded-xl
+                        border border-gray-200 dark:border-gray-700
+                        p-5">
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200
+                            border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
+                            Series
+                        </h3>
+
+                        @if(isset($seriesList) && $seriesList->isNotEmpty())
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium
+                               text-gray-600 dark:text-gray-400 mb-1">
+                                        Assign to Series
+                                    </label>
+                                    <select name="series_id"
+                                            class="w-full border border-gray-300 dark:border-gray-600
+                               bg-white dark:bg-gray-900
+                               text-gray-800 dark:text-gray-200
+                               rounded-lg px-3 py-2 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                        <option value="">— No Series —</option>
+                                        @foreach($seriesList as $s)
+                                            <option value="{{ $s->id }}"
+                                                {{ old('series_id', $postSeries?->id) == $s->id ? 'selected' : '' }}>
+                                                {{ $s->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-medium
+                               text-gray-600 dark:text-gray-400 mb-1">
+                                        Order in Series
+                                    </label>
+                                    <input type="number"
+                                           name="series_order"
+                                           value="{{ old('series_order', $postSeriesOrder ?? 1) }}"
+                                           min="1"
+                                           class="w-full border border-gray-300 dark:border-gray-600
+                              bg-white dark:bg-gray-900
+                              text-gray-800 dark:text-gray-200
+                              rounded-lg px-3 py-2 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                        Position of this post in the series.
+                                    </p>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                No series yet.
+                                <a href="{{ route('admin.series.create') }}"
+                                   class="text-indigo-500 dark:text-indigo-400 hover:underline">
+                                    Create one first
+                                </a>.
+                            </p>
                         @endif
                     </div>
 

@@ -13,8 +13,7 @@
 
                 {{-- Avatar --}}
                 <div class="shrink-0">
-                    <img src="{{ $author->avatar_url }}"
-                         alt="{{ $author->name }}"
+                    <img src="{{ $author->avatar_url }}" alt="{{ $author->name }}"
                          class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover
                             border-4 border-white dark:border-gray-800
                             shadow-lg">
@@ -29,6 +28,20 @@
                                text-gray-900 dark:text-white">
                             {{ $author->name }}
                         </h1>
+                        {{-- Author Badges --}}
+                        @if($author->badges->isNotEmpty())
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                @foreach($author->badges as $badge)
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1
+                                         {{ $badge->color }}
+                                         rounded-full text-xs font-medium"
+                                          title="{{ $badge->description }}">
+                                        <span>{{ $badge->icon }}</span>
+                                        {{ $badge->name }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
 
                         @php
                             $role      = $author->roles->first();
@@ -40,7 +53,7 @@
                             };
                         @endphp
                         @if($role)
-                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium {{ $roleColor }}">
+                            <span class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium {{ $roleColor }}">
                             {{ ucfirst($role->name) }}
                         </span>
                         @endif

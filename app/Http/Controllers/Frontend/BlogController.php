@@ -144,14 +144,6 @@ class BlogController extends Controller
 
     public function show(string $slug, Request $request)
     {
-        /*
-        | getPostBySlug() checks cache first.
-        | Key: "post_slug_my-article-title"
-        | If not cached: runs DB query, caches result for 60 min.
-        | If cached: returns in < 1ms.
-        |
-        | Returns null if post not found → we abort with 404.
-        */
         $post = $this->cache->getPostBySlug($slug);
 
         if (!$post) {
@@ -227,11 +219,45 @@ class BlogController extends Controller
                 ->value('type') // returns the type string or null
             : null;
 
+
+
+        /*
+    | Load series context for prev/next navigation.
+    | We load the first series this post belongs to.
+    | If a post is in multiple series, we show only the first.
+    */
+        $postSeries     = null;
+        $seriesAllPosts = collect();
+        $seriesPrev     = null;
+        $seriesNext     = null;
+
+        $firstSeries = $post->series()->first();
+
+        if ($firstSeries) {
+            $postSeries     = $firstSeries;
+            $seriesAllPosts = $firstSeries->publishedPosts()->get();
+
+            $currentIndex = $seriesAllPosts->search(
+                fn($p) => $p->id === $post->id
+            );
+
+            if ($currentIndex !== false) {
+                $seriesPrev = $currentIndex > 0
+                    ? $seriesAllPosts[$currentIndex - 1]
+                    : null;
+
+                $seriesNext = $currentIndex < $seriesAllPosts->count() - 1
+                    ? $seriesAllPosts[$currentIndex + 1]
+                    : null;
+            }
+        }
+
         return view('frontend.post', compact(
             'post', 'comments', 'relatedPosts', 'categories',
             'popularTags', 'totalClaps', 'userClaps', 'maxClaps',
             'isBookmarked', 'seo',
-            'reactionCounts', 'userReaction'
+            'reactionCounts', 'userReaction',
+            'postSeries', 'seriesAllPosts', 'seriesPrev', 'seriesNext',
         ));
     }
 

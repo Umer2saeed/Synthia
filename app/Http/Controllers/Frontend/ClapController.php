@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\Clap;
+use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,17 +40,6 @@ class ClapController extends Controller
     */
     public function clap(Request $request, Post $post): JsonResponse
     {
-        /*
-        |----------------------------------------------------------------------
-        | Step 1: Validate the post is published
-        |----------------------------------------------------------------------
-        | We only allow clapping on published posts.
-        | If someone tries to clap on a draft post by guessing the URL,
-        | we return a 404 error.
-        |
-        | The Post model binding automatically finds the post by ID.
-        | We then check its status manually.
-        */
         if ($post->status !== 'published') {
             return response()->json([
                 'success' => false,
@@ -57,13 +47,7 @@ class ClapController extends Controller
             ], 404);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Step 2: Cannot clap on your own post
-        |----------------------------------------------------------------------
-        | Authors cannot clap on their own content.
-        | This is a fairness rule — same as Medium's behavior.
-        */
+
         if ($post->user_id === auth()->id()) {
             return response()->json([
                 'success' => false,
@@ -71,22 +55,6 @@ class ClapController extends Controller
             ], 403);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Step 3: Find or create the clap record
-        |----------------------------------------------------------------------
-        | firstOrCreate() does two things in one call:
-        |
-        | FIRST argument — the search conditions:
-        |   Find a row where user_id = current user AND post_id = this post
-        |
-        | SECOND argument — default values if creating a new row:
-        |   Set count = 0 when creating (we increment it next)
-        |
-        | DATABASE RESULT:
-        |   First ever clap → INSERT INTO claps (user_id, post_id, count) VALUES (1, 5, 0)
-        |   Subsequent clap → SELECT * FROM claps WHERE user_id=1 AND post_id=5
-        */
         $clap = Clap::firstOrCreate(
             [
                 'user_id' => auth()->id(),
@@ -97,16 +65,6 @@ class ClapController extends Controller
             ]
         );
 
-        /*
-        |----------------------------------------------------------------------
-        | Step 4: Check if user has reached the maximum
-        |----------------------------------------------------------------------
-        | Clap::MAX_CLAPS_PER_USER = 50
-        |
-        | If the user has already clapped 50 times, we do not increment.
-        | We still return a success response with maxed = true so
-        | JavaScript can show a "max reached" state on the button.
-        */
         if ($clap->count >= Clap::MAX_CLAPS_PER_USER) {
             return response()->json([
                 'success'     => true,
@@ -117,36 +75,11 @@ class ClapController extends Controller
             ]);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Step 5: Increment the clap count
-        |----------------------------------------------------------------------
-        | increment('count') does this SQL in one query:
-        |   UPDATE claps SET count = count + 1 WHERE id = {clap_id}
-        |
-        | This is safer than:
-        |   $clap->count = $clap->count + 1;
-        |   $clap->save();
-        |
-        | Because increment() is atomic — if two requests come in
-        | simultaneously, they cannot overwrite each other.
-        | The database handles the addition, not PHP.
-        |
-        | After increment() we refresh the model to get the updated count.
-        */
         $clap->increment('count');
         $clap->refresh(); // reload the model to get the updated count value
 
-        /*
-        |----------------------------------------------------------------------
-        | Step 6: Return JSON response
-        |----------------------------------------------------------------------
-        | JavaScript receives this and updates the UI:
-        |   total_claps → the number shown publicly on the post
-        |   user_claps  → how many times THIS user has clapped
-        |   maxed       → whether this user has hit the 50 limit
-        |   message     → optional feedback text
-        */
+        app(BadgeService::class)->checkAndAward($post->user);
+
         return response()->json([
             'success'     => true,
             'maxed'       => $clap->count >= Clap::MAX_CLAPS_PER_USER,

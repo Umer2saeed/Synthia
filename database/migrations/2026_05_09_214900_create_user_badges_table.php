@@ -6,20 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('user_badges', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('badge_id')->constrained()->cascadeOnDelete();
+            $table->timestamp('earned_at')->useCurrent();
+
+            /*
+            | awarded_by: admin user ID who manually awarded this badge.
+            | null = auto-awarded by the system.
+            */
+            $table->foreignId('awarded_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
+            $table->unique(['user_id', 'badge_id'], 'user_badges_unique');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('user_badges');

@@ -8,7 +8,12 @@ use App\Models\Tag;
 use App\Observers\CategoryObserver;
 use App\Observers\PostObserver;
 use App\Observers\TagObserver;
+use App\Services\BadgeService;
+use App\Services\CacheService;
 use App\Services\ImageOptimizationService;
+use App\Services\PostViewService;
+use App\Services\RevisionService;
+use App\Services\SanitizationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\JobFailed;
@@ -27,19 +32,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Services\PostViewService::class);
+        $this->app->singleton(PostViewService::class);
 
         // Input Sanitization Service
-        $this->app->singleton(\App\Services\SanitizationService::class);
+        $this->app->singleton(SanitizationService::class);
         // CacheService
-        $this->app->singleton(\App\Services\CacheService::class);
+        $this->app->singleton(CacheService::class);
 
         $this->app->singleton(ImageManager::class, function () {
             return new ImageManager(new GdDriver());
         });
 
+        $this->app->singleton(BadgeService::class);
+
         // Register our services as singletons
         $this->app->singleton(ImageOptimizationService::class);
+
+        $this->app->singleton(RevisionService::class);
     }
 
     /**
