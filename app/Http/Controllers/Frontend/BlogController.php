@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\StoreCommentRequest;
 use App\Jobs\SendNewCommentNotificationJob;
 use App\Models\Clap;
+use App\Models\Reaction;
+use App\Services\OgImageService;
 use App\Services\PostSearchService;
 use App\Services\PostViewService;
 use App\Services\SanitizationService;
@@ -20,6 +22,7 @@ use App\Models\Bookmark;
 use App\Services\CacheService;
 use App\Support\CacheKeys;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class BlogController extends Controller
 {
@@ -159,12 +162,12 @@ class BlogController extends Controller
             $viewService->record($post, $request);
         }
 
-        $clapData = \App\Models\Clap::where('post_id', $post->id)
+        $clapData = Clap::where('post_id', $post->id)
             ->selectRaw('COALESCE(SUM(`count`), 0) as total_claps,COALESCE(SUM(CASE WHEN user_id = ? THEN `count` ELSE 0 END), 0) as user_claps', [auth()->id() ?? 0])
             ->first();
         $totalClaps = (int) ($clapData->total_claps ?? 0);
         $userClaps  = (int) ($clapData->user_claps ?? 0);
-        $maxClaps   = \App\Models\Clap::MAX_CLAPS_PER_USER;
+        $maxClaps   = Clap::MAX_CLAPS_PER_USER;
 
         /*
         |----------------------------------------------------------------------
@@ -197,15 +200,20 @@ class BlogController extends Controller
         $categories  = $this->cache->getSidebarCategories();
         $popularTags = $this->cache->getSidebarTags();
 
+        $ogImageUrl = $post->cover_image
+            ? asset('storage/' . $post->cover_image)
+            : app(OgImageService::class)->getUrl($post);
+
         $seo = $this->buildSeo(
             title:       $post->title,
-            description: $post->ai_summary ?? \Str::limit(strip_tags($post->content), 155),
-            image:       $post->cover_image
-                ? asset('storage/' . $post->cover_image)
-                : asset('images/og-default.jpg'),
+            description: $post->ai_summary ?? Str::limit(strip_tags($post->content), 155),
+            image:       $ogImageUrl,
             type:        'article',
             author:      $post->user->name,
             publishedAt: $post->published_at?->toIso8601String(),
+//            image:       $post->cover_image
+//                ? asset('storage/' . $post->cover_image)
+//                : asset('images/og-default.jpg'),
         );
 
         /*
@@ -214,7 +222,7 @@ class BlogController extends Controller
    */
         $reactionCounts  = $post->getReactionCounts();
         $userReaction    = auth()->check()
-            ? \App\Models\Reaction::where('user_id', auth()->id())
+            ? Reaction::where('user_id', auth()->id())
                 ->where('post_id', $post->id)
                 ->value('type') // returns the type string or null
             : null;

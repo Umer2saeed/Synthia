@@ -6,6 +6,7 @@ use App\Models\Follow;
 use App\Models\Post;
 use App\Services\BadgeService;
 use App\Services\CacheService;
+use App\Services\OgImageService;
 use Illuminate\Support\Facades\Cache;
 
 class PostObserver
@@ -32,6 +33,11 @@ class PostObserver
         $this->clearFollowerFeedCaches($post);
 
         /*
+        | Delete the cached OG image so it regenerates with updated content.
+        */
+        app(OgImageService::class)->clear($post);
+
+        /*
         | Check badges when a post becomes published.
         | getOriginal('status') is the value BEFORE the update.
         */
@@ -45,6 +51,9 @@ class PostObserver
         $this->cache->clearPostCaches($post);
         $this->clearFeedCache($post);
         $this->clearFollowerFeedCaches($post);
+
+        // Clean up OG image when post is deleted
+        app(OgImageService::class)->clear($post);
     }
 
     public function restored(Post $post): void

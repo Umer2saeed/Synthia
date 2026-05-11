@@ -24,6 +24,7 @@ use App\Http\Controllers\Frontend\ClapController;
 use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\OgImageController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\ReaderDashboardController;
 use App\Http\Controllers\Frontend\ReadingListController;
@@ -58,6 +59,13 @@ Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.sh
 */
 Route::get('/feed', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.index');
 Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
+/*
+| OG Image Route — public, no auth required.
+| Search engines and social platforms fetch this URL directly.
+| Place this alongside the RSS feed routes at the top of web.php.
+*/
+Route::get('/og-image/{post}', [OgImageController::class, 'show'])->name('og-image');
+
 Route::get('/category/{slug}/feed', [\App\Http\Controllers\FeedController::class, 'category'])->name('feed.category');
 
 Route::middleware(['auth', 'verified'])->group(function () {

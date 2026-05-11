@@ -11,6 +11,7 @@ use App\Observers\TagObserver;
 use App\Services\BadgeService;
 use App\Services\CacheService;
 use App\Services\ImageOptimizationService;
+use App\Services\OgImageService;
 use App\Services\PostViewService;
 use App\Services\RevisionService;
 use App\Services\SanitizationService;
@@ -49,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ImageOptimizationService::class);
 
         $this->app->singleton(RevisionService::class);
+
+        $this->app->singleton(OgImageService::class);
     }
 
     /**
