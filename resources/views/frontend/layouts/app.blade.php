@@ -61,6 +61,29 @@
         })();
     </script>
 
+    {{--
+| JSON-LD Structured Data
+| Injected per-page — only present when the controller passes these variables.
+| Each @isset check prevents errors on pages that do not pass these variables.
+--}}
+    @isset($schemaWebsite)
+        <script type="application/ld+json">
+            {!! $schemaWebsite !!}
+        </script>
+    @endisset
+
+    @isset($schemaBlogPost)
+        <script type="application/ld+json">
+            {!! $schemaBlogPost !!}
+        </script>
+    @endisset
+
+    @isset($schemaBreadcrumb)
+        <script type="application/ld+json">
+            {!! $schemaBreadcrumb !!}
+        </script>
+    @endisset
+
     <style>
         .font-display { font-family: 'Playfair Display', serif; }
         .font-body    { font-family: 'Inter', sans-serif; }

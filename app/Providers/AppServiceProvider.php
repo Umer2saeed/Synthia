@@ -15,6 +15,7 @@ use App\Services\OgImageService;
 use App\Services\PostViewService;
 use App\Services\RevisionService;
 use App\Services\SanitizationService;
+use App\Services\SchemaService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\JobFailed;
@@ -52,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(RevisionService::class);
 
         $this->app->singleton(OgImageService::class);
+
+        $this->app->singleton(SchemaService::class);
     }
 
     /**

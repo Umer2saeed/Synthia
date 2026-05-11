@@ -23,6 +23,7 @@ use App\Services\CacheService;
 use App\Support\CacheKeys;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use App\Services\SchemaService;
 
 class BlogController extends Controller
 {
@@ -260,12 +261,17 @@ class BlogController extends Controller
             }
         }
 
+        $schemaService  = app(SchemaService::class);
+        $schemaBlogPost = $schemaService->blogPosting($post);
+        $schemaBreadcrumb = $schemaService->breadcrumbList($post);
+
         return view('frontend.post', compact(
             'post', 'comments', 'relatedPosts', 'categories',
             'popularTags', 'totalClaps', 'userClaps', 'maxClaps',
             'isBookmarked', 'seo',
             'reactionCounts', 'userReaction',
             'postSeries', 'seriesAllPosts', 'seriesPrev', 'seriesNext',
+            'schemaBlogPost', 'schemaBreadcrumb',
         ));
     }
 
