@@ -3,9 +3,11 @@
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
 use App\Http\Controllers\Admin\BulkPostController;
+use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\ClapController;
+use App\Http\Controllers\Frontend\CommentLikeController;
 use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
@@ -27,13 +29,16 @@ use App\Http\Controllers\Frontend\BlogController;
 use App\Http\Controllers\Frontend\CategoryPageController;
 use App\Http\Controllers\Frontend\TagPageController;
 
-// Frontend routes
+/*
+|--------------------------------------------------------------------------
+| Public Frontend Routes
+|--------------------------------------------------------------------------
+*/
 Route::get('/',                         [HomeController::class,         'index'])->name('home');
 Route::get('/blog',                     [BlogController::class,         'index'])->name('blog');
 Route::get('/blog/{slug}',              [BlogController::class,         'show'])->name('blog.post');
 Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
 Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
-
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 
 /*
@@ -43,17 +48,21 @@ Route::get('/authors/{username}',  [AuthorController::class,       'show'])->nam
 | These must be publicly accessible — no auth middleware.
 | RSS readers are automated bots that do not have sessions.
 */
-Route::get('/feed', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.index');
-Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
-Route::get('/category/{slug}/feed', [\App\Http\Controllers\FeedController::class, 'category'])->name('feed.category');
+Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
+Route::get('/rss', [FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
+Route::get('/category/{slug}/feed', [FeedController::class, 'category'])->name('feed.category');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
     // Comments
     Route::post('/comments', [BlogController::class, 'storeComment'])->name('comments.store');
     Route::delete('/comments/{comment}', [BlogController::class, 'destroyComment'])->name('comments.destroy');
 
     // Claps
     Route::post('/posts/{post}/clap', [ClapController::class, 'clap'])->name('posts.clap');
+
+    // Reactions
+    Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
 
     // Bookmarks
     Route::post('/bookmarks',  [BookmarkController::class, 'toggle'])->name('bookmarks.toggle');
@@ -64,12 +73,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/following', [FollowController::class, 'following'])->name('following.index');
     Route::get('/followers', [FollowController::class, 'followers'])->name('followers.index');
 
-    /*
-| Reactions — authenticated verified users only
-| Cannot react to your own post (enforced in blade, not route)
-*/
-    Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
-
+    // Comment Likes
+    Route::post('/comments/{comment}/like', [CommentLikeController::class, 'toggle'])->name('comments.like');
 });
 
 Route::middleware(['auth'])->name('frontend.')->group(function () {
@@ -83,17 +88,15 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
 
 // Auth Routes (Breeze handles login/register/etc.)
 require __DIR__.'/auth.php';
+
 // No user can log out explicitly by putting the /logout in the URL
 Route::get('/logout', fn() => redirect('/login'));
-
-
-
 
 // Admin Panel Routes — must be authenticated
 Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
 
+        // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        // route name = admin.dashboard
 
         // Admin Profile Routes — prefixed to avoid collision with frontend profile
         Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
@@ -101,36 +104,42 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('/password',   [ProfileController::class, 'updatePassword'])->name('profile.password');
         Route::delete('/avatar',  [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
-        // route names = admin.profile.edit, admin.profile.update, etc.
 
+        // Admin Panel Access Required
         Route::middleware(['permission:access admin panel'])->group(function () {
-            // Trash Routes
+
+            // Posts — custom routes BEFORE resource to prevent conflicts
             Route::get('posts/trash',              [PostController::class, 'trash'])->name('posts.trash');
             Route::patch('posts/{id}/restore',     [PostController::class, 'restore'])->name('posts.restore');
             Route::delete('posts/{id}/force-delete', [PostController::class, 'forceDelete'])->name('posts.force-delete');
-
             // Resource Routes after custom routes
             Route::resource('posts',      PostController::class);
+
+            // Categories and Tags
             Route::resource('categories', CategoryController::class);
             Route::resource('tags',       TagController::class);
 
-            Route::get('/admin/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+            // Activity Log
+            Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
-            Route::post('/admin/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
+            // Bulk Post Actions
+            Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
 
-            Route::put('/admin/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
-            Route::delete('/admin/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+            // Draft Autosave
+            Route::post('/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
+            Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
 
         });
 
+        // Comment Management
         Route::middleware(['permission:delete comments'])->group(function () {
             Route::get('comments',                     [CommentController::class, 'index'])->name('comments.index');
             Route::patch('comments/{comment}/approve', [CommentController::class, 'approve'])->name('comments.approve');
             Route::delete('comments/{comment}',        [CommentController::class, 'destroy'])->name('comments.destroy');
         });
 
+        // Admin-only Management (Users, Roles, Permissions)
         Route::middleware(['role:admin'])->group(function () {
-
             Route::resource('users',       UserController::class)->except(['create', 'store']);
             Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
             Route::resource('roles',       RoleController::class);

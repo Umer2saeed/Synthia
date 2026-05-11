@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
@@ -42,6 +43,17 @@ class UserRoleController extends Controller
             }
             $user->syncRoles($request->input('roles', []));
         }
+
+        /*
+    | Log the role change after roles are saved.
+    */
+        $roleNames = collect($request->roles ?? [])->implode(', ');
+
+        ActivityLog::record(
+            action:      ActivityLog::ACTION_ROLE_CHANGED,
+            description: 'Changed roles for ' . $user->email . ' to: ' . ($roleNames ?: 'none'),
+            model:       $user,
+        );
 
         return redirect()->route('admin.users.index')
             ->with('success', "User '{$user->name}' updated successfully.");

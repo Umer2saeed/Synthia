@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\StoreCommentRequest;
+use App\Jobs\SendCommentReplyNotificationJob;
 use App\Jobs\SendNewCommentNotificationJob;
 use App\Models\Clap;
 use App\Services\PostSearchService;
@@ -144,14 +145,6 @@ class BlogController extends Controller
 
     public function show(string $slug, Request $request)
     {
-        /*
-        | getPostBySlug() checks cache first.
-        | Key: "post_slug_my-article-title"
-        | If not cached: runs DB query, caches result for 60 min.
-        | If cached: returns in < 1ms.
-        |
-        | Returns null if post not found → we abort with 404.
-        */
         $post = $this->cache->getPostBySlug($slug);
 
         if (!$post) {
@@ -183,9 +176,16 @@ class BlogController extends Controller
         $comments = $post->comments()
             ->approved()
             ->with(['user'])
+            ->withCount('likes')
             ->latest()
             ->get();
 
+        $likedCommentIds = auth()->check()
+            ? \App\Models\CommentLike::where('user_id', auth()->id())
+                ->whereIn('comment_id', $comments->pluck('id'))
+                ->pluck('comment_id')
+                ->toArray()
+            : [];
 
         /*
         |----------------------------------------------------------------------
@@ -231,7 +231,7 @@ class BlogController extends Controller
             'post', 'comments', 'relatedPosts', 'categories',
             'popularTags', 'totalClaps', 'userClaps', 'maxClaps',
             'isBookmarked', 'seo',
-            'reactionCounts', 'userReaction'
+            'reactionCounts', 'userReaction', 'likedCommentIds'
         ));
     }
 
@@ -303,9 +303,7 @@ class BlogController extends Controller
     }
 
 
-    /*
-    | storeComment() and destroyComment() unchanged — no SEO needed
-    */
+
     public function storeComment(StoreCommentRequest $request): JsonResponse
     {
         $post = Post::published()->findOrFail($request->validated()['post_id']);

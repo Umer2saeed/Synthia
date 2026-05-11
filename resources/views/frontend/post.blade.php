@@ -393,11 +393,14 @@
                     <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-6">
                         Comments
                         <span id="comment-count"
-                              class="ml-2 text-base font-normal text-indigo-600 dark:text-indigo-400
-                                     bg-indigo-50 dark:bg-indigo-950 px-2.5 py-0.5 rounded-full">
-                            {{ $comments->count() }}
+                              class="ml-1 px-2 py-0.5
+                                     bg-indigo-50 dark:bg-indigo-950
+                                     text-indigo-600 dark:text-indigo-400
+                                     text-xs font-medium rounded-full">
+                            {{ $post->comments()->approved()->count() }}
                         </span>
                     </h2>
+
 
                     @auth
                         @if(!auth()->user()->hasVerifiedEmail())
@@ -472,14 +475,14 @@
                         </div>
                     @endauth
 
-                    {{-- Comments List --}}
+                    {{-- Comments list --}}
                     <div id="comments-list" class="space-y-5">
                         @forelse($comments as $comment)
                             @include('frontend.partials._comment', compact('comment'))
                         @empty
                             <p id="no-comments-msg"
-                               class="text-sm text-gray-400 text-center py-10">
-                                No comments yet — be the first!
+                               class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+                                No comments yet. Be the first to comment!
                             </p>
                         @endforelse
                     </div>
@@ -692,7 +695,8 @@
     {{-- Comment Form JS --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const csrfToken   = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
             const form        = document.getElementById('comment-form');
             const textarea    = document.getElementById('comment-content');
             const submitBtn   = document.getElementById('comment-submit-btn');
@@ -700,19 +704,24 @@
             const commentList = document.getElementById('comments-list');
             const countBadge  = document.getElementById('comment-count');
             const charCount   = document.getElementById('char-count');
+            const noMsg       = document.getElementById('no-comments-msg');
 
             if (textarea) {
-                textarea.addEventListener('input', () => {
-                    charCount.textContent = textarea.value.length;
+                textarea.addEventListener('input', function () {
+                    if (charCount) charCount.textContent = this.value.length;
                 });
             }
 
             if (form) {
                 form.addEventListener('submit', async function (e) {
                     e.preventDefault();
+
+                    const formData = new FormData(form);
+
                     submitBtn.disabled    = true;
                     submitBtn.textContent = 'Posting...';
                     errorMsg.classList.add('hidden');
+                    errorMsg.textContent = '';
 
                     try {
                         const response = await fetch('{{ route('comments.store') }}', {
@@ -720,27 +729,31 @@
                             headers: {
                                 'X-CSRF-TOKEN':     csrfToken,
                                 'X-Requested-With': 'XMLHttpRequest',
+                                'Accept':           'application/json',
                             },
-                            body: new FormData(form),
+                            body: formData,
                         });
 
                         const data = await response.json();
 
                         if (response.ok && data.success) {
-                            document.getElementById('no-comments-msg')?.remove();
+                            if (noMsg) noMsg.remove();
                             commentList.insertAdjacentHTML('afterbegin', data.html);
                             countBadge.textContent = data.count;
-                            textarea.value         = '';
-                            charCount.textContent  = '0';
+                            textarea.value = '';
+                            if (charCount) charCount.textContent = '0';
+
                         } else if (response.status === 422) {
-                            errorMsg.textContent = Object.values(data.errors)[0][0];
+                            const firstError = Object.values(data.errors)[0][0];
+                            errorMsg.textContent = firstError;
                             errorMsg.classList.remove('hidden');
                         } else {
                             errorMsg.textContent = data.message || 'Something went wrong.';
                             errorMsg.classList.remove('hidden');
                         }
-                    } catch {
-                        errorMsg.textContent = 'Network error. Please try again.';
+
+                    } catch (err) {
+                        errorMsg.textContent = 'Network error. Please check your connection.';
                         errorMsg.classList.remove('hidden');
                     } finally {
                         submitBtn.disabled    = false;
@@ -751,33 +764,220 @@
 
             if (commentList) {
                 commentList.addEventListener('click', async function (e) {
+
                     if (!e.target.classList.contains('delete-comment-btn')) return;
                     if (!confirm('Delete this comment?')) return;
 
-                    const id  = e.target.dataset.commentId;
-                    const el  = document.querySelector(`.comment-item[data-comment-id="${id}"]`);
+                    const commentId = e.target.dataset.commentId;
+                    const commentEl = document.querySelector(
+                        `.comment-item[data-comment-id="${commentId}"]`
+                    );
 
-                    const response = await fetch(`/comments/${id}`, {
-                        method:  'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN':     csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type':     'application/json',
-                        },
-                    });
+                    try {
+                        const response = await fetch(`/comments/${commentId}`, {
+                            method:  'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN':     csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept':           'application/json',
+                                'Content-Type':     'application/json',
+                            },
+                        });
 
-                    const data = await response.json();
-                    if (data.success) {
-                        el.style.opacity    = '0';
-                        el.style.transition = 'opacity 0.3s';
-                        setTimeout(() => {
-                            el.remove();
-                            const current = parseInt(countBadge.textContent);
-                            countBadge.textContent = Math.max(0, current - 1);
-                        }, 300);
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            commentEl.style.transition = 'opacity 0.3s ease';
+                            commentEl.style.opacity    = '0';
+                            setTimeout(() => {
+                                commentEl.remove();
+                                const currentCount = parseInt(countBadge.textContent) || 0;
+                                countBadge.textContent = Math.max(0, currentCount - 1);
+                                if (commentList.querySelectorAll('.comment-item').length === 0) {
+                                    commentList.innerHTML =
+                                        '<p id="no-comments-msg" class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No comments yet. Be the first to comment!</p>';
+                                }
+                            }, 300);
+                        } else {
+                            alert(data.message || 'Could not delete comment.');
+                        }
+
+                    } catch (err) {
+                        alert('Network error. Please try again.');
                     }
                 });
             }
+
+            /*
+            |----------------------------------------------------------------------
+            | Comment Like — AJAX toggle
+            |----------------------------------------------------------------------
+            | We use event delegation on commentList so this works for comments
+            | added dynamically via AJAX (new comments posted without page reload).
+            |
+            | FLOW per click:
+            |   1. Read current state from data-liked attribute
+            |   2. Optimistically update the UI immediately (feels instant)
+            |   3. Send request to server
+            |   4. On success: update data-liked with server response
+            |   5. On failure: revert the optimistic update
+            */
+            if (commentList) {
+                commentList.addEventListener('click', async function (e) {
+
+                    const likeBtn = e.target.closest('.like-btn');
+                    if (!likeBtn) return;
+
+                    const commentId  = likeBtn.dataset.commentId;
+                    const isLiked    = likeBtn.dataset.liked === 'true';
+                    const countEl    = likeBtn.querySelector('.like-count');
+                    const iconEl     = likeBtn.querySelector('.like-icon');
+
+                    /*
+                    | Current count from the DOM.
+                    | parseInt with fallback to 0 handles empty string (count hidden when 0).
+                    */
+                    const currentCount = parseInt(countEl.textContent) || 0;
+
+                    /*
+                    |------------------------------------------------------------------
+                    | Optimistic UI update — change the icon and count immediately.
+                    |
+                    | WHY optimistic?
+                    | If we wait for the server response, there is a noticeable delay
+                    | between click and visual feedback. Optimistic updates make the
+                    | interaction feel instant — we revert if the server fails.
+                    |------------------------------------------------------------------
+                    */
+                    if (isLiked) {
+                        /*
+                        | Currently liked → optimistically unlike
+                        */
+                        setUnlikedState(likeBtn, iconEl, countEl, currentCount - 1);
+                    } else {
+                        /*
+                        | Currently not liked → optimistically like
+                        */
+                        setLikedState(likeBtn, iconEl, countEl, currentCount + 1);
+                    }
+
+                    /*
+                    | Animate the heart with a quick scale pulse
+                    */
+                    iconEl.style.transform = 'scale(1.4)';
+                    setTimeout(() => { iconEl.style.transform = 'scale(1)'; }, 200);
+
+                    try {
+                        const response = await fetch(`/comments/${commentId}/like`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN':     csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept':           'application/json',
+                                'Content-Type':     'application/json',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            /*
+                            | Server confirmed — update with real count from DB.
+                            | The count may differ from our optimistic value if
+                            | another user liked at the same moment.
+                            */
+                            if (data.liked) {
+                                setLikedState(likeBtn, iconEl, countEl, data.count);
+                            } else {
+                                setUnlikedState(likeBtn, iconEl, countEl, data.count);
+                            }
+                        } else {
+                            /*
+                            | Server rejected (e.g. self-like attempt via API).
+                            | Revert the optimistic update.
+                            */
+                            if (isLiked) {
+                                setLikedState(likeBtn, iconEl, countEl, currentCount);
+                            } else {
+                                setUnlikedState(likeBtn, iconEl, countEl, currentCount);
+                            }
+                        }
+
+                    } catch (err) {
+                        /*
+                        | Network error — revert optimistic update.
+                        */
+                        console.error('Like error:', err);
+                        if (isLiked) {
+                            setLikedState(likeBtn, iconEl, countEl, currentCount);
+                        } else {
+                            setUnlikedState(likeBtn, iconEl, countEl, currentCount);
+                        }
+                    }
+                });
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | setLikedState() — Update button to "liked" appearance
+            |--------------------------------------------------------------------------
+            */
+            function setLikedState(btn, iconEl, countEl, count) {
+                btn.dataset.liked = 'true';
+
+                /*
+                | Switch to filled heart SVG
+                */
+                iconEl.setAttribute('fill', 'currentColor');
+                iconEl.setAttribute('stroke', 'none');
+                iconEl.innerHTML = '<path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.518 2.995 2 5 2c1.557 0 3.064.749 4 2 .937-1.25 2.443-2 4-2 2.006 0 4 1.518 4 5.191 0 4.104-5.369 8.862-11 14.402z"/>';
+
+                /*
+                | Switch to red color
+                */
+                btn.classList.remove('text-gray-400', 'dark:text-gray-500',
+                    'hover:text-red-400', 'dark:hover:text-red-400');
+                btn.classList.add('text-red-500', 'dark:text-red-400');
+
+                /*
+                | Update count — hide if zero
+                */
+                countEl.textContent = count > 0 ? count : '';
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | setUnlikedState() — Update button to "not liked" appearance
+            |--------------------------------------------------------------------------
+            */
+            function setUnlikedState(btn, iconEl, countEl, count) {
+                btn.dataset.liked = 'false';
+
+                /*
+                | Switch to outline heart SVG
+                */
+                iconEl.setAttribute('fill', 'none');
+                iconEl.setAttribute('stroke', 'currentColor');
+                iconEl.setAttribute('stroke-width', '2');
+                iconEl.setAttribute('stroke-linecap', 'round');
+                iconEl.setAttribute('stroke-linejoin', 'round');
+                iconEl.innerHTML = '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>';
+
+                /*
+                | Switch to gray color with red hover
+                */
+                btn.classList.remove('text-red-500', 'dark:text-red-400');
+                btn.classList.add('text-gray-400', 'dark:text-gray-500',
+                    'hover:text-red-400', 'dark:hover:text-red-400');
+
+                /*
+                | Update count — hide if zero
+                */
+                countEl.textContent = count > 0 ? count : '';
+            }
+
+
+
         });
     </script>
 

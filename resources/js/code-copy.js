@@ -83,45 +83,30 @@ document.addEventListener('DOMContentLoaded', function () {
         */
         button.addEventListener('click', async function () {
 
-            /*
-            | Get the text content of the <code> inside this <pre>.
-            | We use textContent (not innerHTML) to get plain text
-            | without any HTML tags — exactly what the user needs to paste.
-            */
             const code = pre.querySelector('code');
             const text = code ? code.textContent : pre.textContent;
 
-            try {
-                /*
-                | navigator.clipboard.writeText() is the modern API.
-                | It requires HTTPS in production (works on localhost too).
-                | The async/await handles the Promise it returns.
-                */
-                await navigator.clipboard.writeText(text);
+            /*
+            |----------------------------------------------------------------------
+            | Try modern clipboard API first (requires HTTPS or localhost).
+            | Fall back to execCommand for HTTP dev environments like synthia.test
+            |----------------------------------------------------------------------
+            */
+            const copied = await copyToClipboard(text);
 
-                /*
-                | Success feedback — change button to "Copied!" for 2 seconds
-                */
+            if (copied) {
                 button.textContent = 'Copied!';
-                applyButtonStyles(button, true); // true = success state
+                applyButtonStyles(button, true);
 
                 setTimeout(function () {
                     button.textContent = 'Copy';
-                    applyButtonStyles(button, false); // false = default state
+                    applyButtonStyles(button, false);
                 }, 2000);
-
-            } catch (err) {
-                /*
-                | Fallback for browsers that block clipboard access.
-                | This can happen if the page is not served over HTTPS
-                | or if the user has denied clipboard permissions.
-                */
+            } else {
                 button.textContent = 'Failed';
                 setTimeout(function () {
                     button.textContent = 'Copy';
                 }, 2000);
-
-                console.warn('Clipboard copy failed:', err);
             }
         });
 
@@ -163,6 +148,67 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| copyToClipboard() — Copy text with HTTPS and HTTP fallback
+|--------------------------------------------------------------------------
+| navigator.clipboard.writeText() only works on:
+|   - HTTPS pages
+|   - localhost (exactly "localhost", not custom domains)
+|
+| synthia.test runs on HTTP so we fall back to the legacy
+| execCommand('copy') approach which works on any HTTP page.
+|
+| Returns true on success, false on failure.
+*/
+async function copyToClipboard(text) {
+
+    /*
+    | Try modern API first
+    */
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (err) {
+            console.warn('Clipboard API failed, trying fallback:', err);
+        }
+    }
+
+    /*
+    | Fallback: create a temporary textarea, select its content,
+    | and use the legacy execCommand to copy it.
+    | This works on HTTP pages in all major browsers.
+    */
+    try {
+        const textarea = document.createElement('textarea');
+
+        textarea.value = text;
+
+        /*
+        | Position it off-screen so it is not visible to the user.
+        */
+        textarea.style.position = 'fixed';
+        textarea.style.left     = '-9999px';
+        textarea.style.top      = '-9999px';
+        textarea.style.opacity  = '0';
+
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        return success;
+
+    } catch (err) {
+        console.error('Both clipboard methods failed:', err);
+        return false;
+    }
+}
 
 /*
 |--------------------------------------------------------------------------

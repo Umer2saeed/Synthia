@@ -22,15 +22,8 @@ class CommentController extends Controller
     {
         $this->authorizeManage();
 
-        $query = Comment::with(['user', 'post'])->latest();
+        $query = Comment::with(['post' => fn($q) => $q->withTrashed(), 'user'])->latest();
 
-        // Filter by approval status: ?status=pending or ?status=approved
-//        if ($request->filled('status')) {
-//            $query->where(
-//                'is_approved',
-//                $request->status === 'approved' ? true : false
-//            );
-//        }
         if ($request->filled('status')) {
             if ($request->status === 'pending') {
                 $query->where('is_approved', false);
@@ -39,13 +32,12 @@ class CommentController extends Controller
             }
         }
 
-
         // Search by comment content
         if ($request->filled('search')) {
             $query->where('content', 'like', '%' . $request->search . '%');
         }
 
-        $comments = $query->paginate(20)->withQueryString();
+        $comments = $query->paginate(30)->withQueryString();
 
         return view('admin.comments.index', compact('comments'));
     }

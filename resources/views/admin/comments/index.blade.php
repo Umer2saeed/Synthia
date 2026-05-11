@@ -126,10 +126,35 @@
                         </td>
 
                         <td class="px-5 py-4">
-                            <a href="{{ route('admin.posts.show', $comment->post) }}"
-                               class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs">
-                                {{ Str::limit($comment->post->title, 35) }}
-                            </a>
+                            {{-- AFTER — handles soft-deleted posts gracefully --}}
+                            @if($comment->post && !$comment->post->trashed())
+                                {{--
+                                | Post exists and is not trashed — show a clickable link.
+                                --}}
+                                <a href="{{ route('admin.posts.show', $comment->post) }}"
+                                   class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs">
+                                    {{ Str::limit($comment->post->title, 35) }}
+                                </a>
+                            @elseif($comment->post && $comment->post->trashed())
+                                {{--
+                                | Post is soft-deleted — show the title as plain text with a
+                                | "deleted" badge so the admin knows why there is no link.
+                                --}}
+                                <span class="text-xs text-gray-400 dark:text-gray-500">
+                                    {{ Str::limit($comment->post->title, 35) }}
+                                    <span class="ml-1 px-1.5 py-0.5 bg-red-100 dark:bg-red-900
+                                                 text-red-500 dark:text-red-400 rounded text-xs">
+                                        deleted
+                                    </span>
+                                </span>
+                            @else
+                                {{--
+                                | Post is force-deleted (permanently gone from DB) — post is null.
+                                --}}
+                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">
+                                    Post removed
+                                </span>
+                            @endif
                         </td>
 
                         <td class="px-5 py-4">
