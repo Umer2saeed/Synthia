@@ -7,6 +7,8 @@ use App\Http\Requests\Frontend\StoreCommentRequest;
 use App\Jobs\SendCommentReplyNotificationJob;
 use App\Jobs\SendNewCommentNotificationJob;
 use App\Models\Clap;
+use App\Models\Reaction;
+use App\Services\OgImageService;
 use App\Services\PostSearchService;
 use App\Services\PostViewService;
 use App\Services\SanitizationService;
@@ -21,6 +23,8 @@ use App\Models\Bookmark;
 use App\Services\CacheService;
 use App\Support\CacheKeys;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use App\Services\SchemaService;
 
 class BlogController extends Controller
 {
@@ -145,6 +149,14 @@ class BlogController extends Controller
 
     public function show(string $slug, Request $request)
     {
+        /*
+        | getPostBySlug() checks cache first.
+        | Key: "post_slug_my-article-title"
+        | If not cached: runs DB query, caches result for 60 min.
+        | If cached: returns in < 1ms.
+        |
+        | Returns null if post not found → we abort with 404.
+        */
         $post = $this->cache->getPostBySlug($slug);
 
         if (!$post) {
@@ -205,15 +217,20 @@ class BlogController extends Controller
         $categories  = $this->cache->getSidebarCategories();
         $popularTags = $this->cache->getSidebarTags();
 
+        $ogImageUrl = $post->cover_image
+            ? asset('storage/' . $post->cover_image)
+            : app(OgImageService::class)->getUrl($post);
+
         $seo = $this->buildSeo(
             title:       $post->title,
-            description: $post->ai_summary ?? \Str::limit(strip_tags($post->content), 155),
-            image:       $post->cover_image
-                ? asset('storage/' . $post->cover_image)
-                : asset('images/og-default.jpg'),
+            description: $post->ai_summary ?? Str::limit(strip_tags($post->content), 155),
+            image:       $ogImageUrl,
             type:        'article',
             author:      $post->user->name,
             publishedAt: $post->published_at?->toIso8601String(),
+//            image:       $post->cover_image
+//                ? asset('storage/' . $post->cover_image)
+//                : asset('images/og-default.jpg'),
         );
 
         /*
@@ -222,16 +239,56 @@ class BlogController extends Controller
    */
         $reactionCounts  = $post->getReactionCounts();
         $userReaction    = auth()->check()
-            ? \App\Models\Reaction::where('user_id', auth()->id())
+            ? Reaction::where('user_id', auth()->id())
                 ->where('post_id', $post->id)
                 ->value('type') // returns the type string or null
             : null;
+
+
+
+        /*
+    | Load series context for prev/next navigation.
+    | We load the first series this post belongs to.
+    | If a post is in multiple series, we show only the first.
+    */
+        $postSeries     = null;
+        $seriesAllPosts = collect();
+        $seriesPrev     = null;
+        $seriesNext     = null;
+
+        $firstSeries = $post->series()->first();
+
+        if ($firstSeries) {
+            $postSeries     = $firstSeries;
+            $seriesAllPosts = $firstSeries->publishedPosts()->get();
+
+            $currentIndex = $seriesAllPosts->search(
+                fn($p) => $p->id === $post->id
+            );
+
+            if ($currentIndex !== false) {
+                $seriesPrev = $currentIndex > 0
+                    ? $seriesAllPosts[$currentIndex - 1]
+                    : null;
+
+                $seriesNext = $currentIndex < $seriesAllPosts->count() - 1
+                    ? $seriesAllPosts[$currentIndex + 1]
+                    : null;
+            }
+        }
+
+        $schemaService  = app(SchemaService::class);
+        $schemaBlogPost = $schemaService->blogPosting($post);
+        $schemaBreadcrumb = $schemaService->breadcrumbList($post);
 
         return view('frontend.post', compact(
             'post', 'comments', 'relatedPosts', 'categories',
             'popularTags', 'totalClaps', 'userClaps', 'maxClaps',
             'isBookmarked', 'seo',
-            'reactionCounts', 'userReaction', 'likedCommentIds'
+            'reactionCounts', 'userReaction', 'likedCommentIds',
+            'reactionCounts', 'userReaction',
+            'postSeries', 'seriesAllPosts', 'seriesPrev', 'seriesNext',
+            'schemaBlogPost', 'schemaBreadcrumb',
         ));
     }
 
@@ -303,7 +360,9 @@ class BlogController extends Controller
     }
 
 
-
+    /*
+    | storeComment() and destroyComment() unchanged — no SEO needed
+    */
     public function storeComment(StoreCommentRequest $request): JsonResponse
     {
         $post = Post::published()->findOrFail($request->validated()['post_id']);

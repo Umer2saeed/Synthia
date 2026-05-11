@@ -22,9 +22,10 @@ class AuthorController extends Controller
 
     public function show(string $username)
     {
-        $author = User::where('username', $username)
-            ->orWhere('id', $username)
-            ->firstOrFail();
+        $author = User::where('username', $username)->with('badges')->orWhere('id', $username)->firstOrFail();
+
+
+
         $author->load('roles');
 
         $author->loadCount([

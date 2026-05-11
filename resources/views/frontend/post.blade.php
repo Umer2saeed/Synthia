@@ -83,6 +83,7 @@
                         </div>
 
                         {{-- Bookmark Button (right side) --}}
+                        <div class="flex items-center gap-2">
                         @auth
                             <button
                                 id="bookmark-btn"
@@ -116,6 +117,61 @@
                             </a>
                         @endauth
 
+                        {{-- Reading List Dropdown --}}
+                        @auth
+                            <div class="relative" id="reading-list-dropdown-wrapper">
+
+                                <button type="button"
+                                        id="reading-list-btn"
+                                        class="flex items-center gap-1.5 px-3 py-2
+                                               text-sm font-medium rounded-xl border
+                                               border-gray-200 dark:border-gray-700
+                                               bg-white dark:bg-gray-800
+                                               text-gray-600 dark:text-gray-400
+                                               hover:border-indigo-300 dark:hover:border-indigo-700
+                                               hover:text-indigo-600 dark:hover:text-indigo-400
+                                               transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    Save to List
+                                </button>
+
+                                {{-- Dropdown panel --}}
+                                <div id="reading-list-panel"
+                                     class="hidden absolute right-0 top-full mt-2 w-72
+                                            bg-white dark:bg-gray-800
+                                            border border-gray-200 dark:border-gray-700
+                                            rounded-2xl shadow-lg z-20 overflow-hidden">
+
+                                    <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                            Save to reading list
+                                        </p>
+                                    </div>
+
+                                    {{-- Lists will be injected here by JS --}}
+                                    <div id="reading-list-items"
+                                         class="max-h-48 overflow-y-auto py-2">
+                                        <p class="px-4 py-2 text-xs text-gray-400 dark:text-gray-500">
+                                            Loading...
+                                        </p>
+                                    </div>
+
+                                    <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                                        <a href="{{ route('reading-lists.index') }}"
+                                           class="text-xs text-indigo-500 dark:text-indigo-400 hover:underline">
+                                            Manage lists →
+                                        </a>
+                                    </div>
+
+                                </div>
+                            </div>
+                        @endauth
+
+                        </div>
+
                     </div>
                 </header>
 
@@ -136,6 +192,110 @@
                         <p class="text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed">
                             {{ $post->ai_summary }}
                         </p>
+                    </div>
+                @endif
+
+
+                {{-- Series Navigation Banner --}}
+                @if($postSeries)
+                    <div class="mb-6 rounded-2xl overflow-hidden
+                border border-indigo-100 dark:border-indigo-900
+                bg-indigo-50 dark:bg-indigo-950/50">
+
+                        {{-- Series header --}}
+                        <div class="px-5 py-4 border-b border-indigo-100 dark:border-indigo-900">
+                            <a href="{{ route('series.show', $postSeries->slug) }}"
+                               class="flex items-center gap-3 group">
+                                <img src="{{ $postSeries->cover_image_url }}"
+                                     alt="{{ $postSeries->title }}"
+                                     class="w-10 h-10 rounded-xl object-cover shrink-0
+                            border border-indigo-200 dark:border-indigo-800">
+                                <div>
+                                    <p class="text-xs font-semibold text-indigo-500 dark:text-indigo-400
+                               uppercase tracking-widest mb-0.5">
+                                        Series
+                                    </p>
+                                    <h3 class="text-sm font-bold text-indigo-900 dark:text-indigo-200
+                                group-hover:text-indigo-600 dark:group-hover:text-indigo-400
+                                transition-colors">
+                                        {{ $postSeries->title }}
+                                    </h3>
+                                </div>
+                                <div class="ml-auto text-xs text-indigo-400 dark:text-indigo-500">
+                                    {{ $seriesAllPosts->count() }}
+                                    {{ Str::plural('part', $seriesAllPosts->count()) }}
+                                </div>
+                            </a>
+                        </div>
+
+                        {{-- Prev / Next navigation --}}
+                        <div class="grid grid-cols-2 divide-x divide-indigo-100 dark:divide-indigo-900">
+
+                            {{-- Previous --}}
+                            <div class="p-4">
+                                @if($seriesPrev)
+                                    <a href="{{ route('blog.post', $seriesPrev->slug) }}"
+                                       class="group flex items-start gap-2">
+                                        <svg class="w-4 h-4 mt-0.5 shrink-0
+                                    text-indigo-400 dark:text-indigo-500
+                                    group-hover:text-indigo-600 dark:group-hover:text-indigo-300
+                                    transition-colors"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                        <div>
+                                            <p class="text-xs text-indigo-400 dark:text-indigo-500 mb-0.5">
+                                                Previous
+                                            </p>
+                                            <p class="text-xs font-semibold
+                                       text-indigo-700 dark:text-indigo-300
+                                       group-hover:text-indigo-900 dark:group-hover:text-indigo-100
+                                       transition-colors line-clamp-2">
+                                                {{ $seriesPrev->title }}
+                                            </p>
+                                        </div>
+                                    </a>
+                                @else
+                                    <p class="text-xs text-indigo-300 dark:text-indigo-700 italic">
+                                        First in series
+                                    </p>
+                                @endif
+                            </div>
+
+                            {{-- Next --}}
+                            <div class="p-4 text-right">
+                                @if($seriesNext)
+                                    <a href="{{ route('blog.post', $seriesNext->slug) }}"
+                                       class="group flex items-start justify-end gap-2">
+                                        <div>
+                                            <p class="text-xs text-indigo-400 dark:text-indigo-500 mb-0.5">
+                                                Next
+                                            </p>
+                                            <p class="text-xs font-semibold
+                                       text-indigo-700 dark:text-indigo-300
+                                       group-hover:text-indigo-900 dark:group-hover:text-indigo-100
+                                       transition-colors line-clamp-2">
+                                                {{ $seriesNext->title }}
+                                            </p>
+                                        </div>
+                                        <svg class="w-4 h-4 mt-0.5 shrink-0
+                                    text-indigo-400 dark:text-indigo-500
+                                    group-hover:text-indigo-600 dark:group-hover:text-indigo-300
+                                    transition-colors"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                  stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                @else
+                                    <p class="text-xs text-indigo-300 dark:text-indigo-700 italic">
+                                        Last in series
+                                    </p>
+                                @endif
+                            </div>
+
+                        </div>
                     </div>
                 @endif
 
@@ -1353,6 +1513,140 @@
                 return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             }
         });
+    </script>
+
+
+    <script>
+        /*
+        | Reading List Dropdown
+        */
+        (function () {
+            const btn     = document.getElementById('reading-list-btn');
+            const panel   = document.getElementById('reading-list-panel');
+            const itemsEl = document.getElementById('reading-list-items');
+
+            if (!btn || !panel) return;
+
+            const postId    = {{ $post->id }};
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            let   loaded    = false;
+
+            /*
+            | Open/close the dropdown.
+            */
+            btn.addEventListener('click', async function (e) {
+                e.stopPropagation();
+                panel.classList.toggle('hidden');
+
+                /*
+                | Load lists only once per page visit.
+                */
+                if (!loaded) {
+                    loaded = true;
+                    await loadLists();
+                }
+            });
+
+            document.addEventListener('click', function () {
+                panel.classList.add('hidden');
+            });
+
+            panel.addEventListener('click', e => e.stopPropagation());
+
+            /*
+            | Fetch user's lists and render them in the dropdown.
+            */
+            async function loadLists() {
+                try {
+                    const response = await fetch(
+                        `/reading-lists/user-lists?post_id=${postId}`,
+                        {
+                            headers: {
+                                'Accept':           'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        }
+                    );
+
+                    const data = await response.json();
+
+                    if (!data.lists || data.lists.length === 0) {
+                        itemsEl.innerHTML =
+                            '<p class="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">' +
+                            'No lists yet. <a href="/reading-lists" class="text-indigo-500 underline">Create one</a>.' +
+                            '</p>';
+                        return;
+                    }
+
+                    itemsEl.innerHTML = data.lists.map(list => `
+                <button type="button"
+                        data-list-id="${list.id}"
+                        class="list-toggle-btn w-full flex items-center justify-between
+                               px-4 py-2.5 text-sm text-left
+                               hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <span class="text-gray-700 dark:text-gray-300 font-medium truncate">
+                        ${escapeHtml(list.name)}
+                    </span>
+                    <span class="flex items-center gap-2 shrink-0 ml-2">
+                        <span class="text-xs text-gray-400 dark:text-gray-500">
+                            ${list.count} posts
+                        </span>
+                        ${list.in_list
+                        ? '<svg class="check-icon w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+                        : '<svg class="check-icon w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>'
+                    }
+                    </span>
+                </button>
+            `).join('');
+
+                    /*
+                    | Bind toggle events to list buttons.
+                    */
+                    itemsEl.querySelectorAll('.list-toggle-btn').forEach(listBtn => {
+                        listBtn.addEventListener('click', async function () {
+                            const listId   = this.dataset.listId;
+                            const checkIcon = this.querySelector('.check-icon');
+
+                            try {
+                                const res = await fetch(`/reading-lists/${listId}/items`, {
+                                    method:  'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': csrfToken,
+                                        'Content-Type': 'application/json',
+                                        'Accept':       'application/json',
+                                    },
+                                    body: JSON.stringify({ post_id: postId }),
+                                });
+
+                                const result = await res.json();
+
+                                if (res.ok && result.success) {
+                                    /*
+                                    | Update the icon based on new in_list state.
+                                    */
+                                    if (result.in_list) {
+                                        checkIcon.outerHTML = '<svg class="check-icon w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                                    } else {
+                                        checkIcon.outerHTML = '<svg class="check-icon w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>';
+                                    }
+                                }
+                            } catch (err) {
+                                console.error('Reading list toggle error:', err);
+                            }
+                        });
+                    });
+
+                } catch (err) {
+                    itemsEl.innerHTML =
+                        '<p class="px-4 py-3 text-xs text-red-400">Failed to load lists.</p>';
+                }
+            }
+
+            function escapeHtml(str) {
+                return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+        })();
     </script>
 
 @endsection

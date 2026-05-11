@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
+use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorController;
@@ -18,16 +19,23 @@ use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PostController;
+use App\Http\Controllers\Admin\PostRevisionController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
-// Frontend Controllers
-use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\ActivityFeedController;
 use App\Http\Controllers\Frontend\BlogController;
 use App\Http\Controllers\Frontend\CategoryPageController;
+use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\OgImageController;
+use App\Http\Controllers\Frontend\ReaderDashboardController;
+use App\Http\Controllers\Frontend\ReadingListController;
 use App\Http\Controllers\Frontend\TagPageController;
+use App\Http\Controllers\Frontend\SeriesController;
+use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +49,13 @@ Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])
 Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 
+
+
+/*
+| Public Series Routes
+*/
+Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
+Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
 /*
 |--------------------------------------------------------------------------
 | RSS Feed Routes
@@ -48,9 +63,16 @@ Route::get('/authors/{username}',  [AuthorController::class,       'show'])->nam
 | These must be publicly accessible — no auth middleware.
 | RSS readers are automated bots that do not have sessions.
 */
-Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
-Route::get('/rss', [FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
-Route::get('/category/{slug}/feed', [FeedController::class, 'category'])->name('feed.category');
+Route::get('/feed', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.index');
+Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
+/*
+| OG Image Route — public, no auth required.
+| Search engines and social platforms fetch this URL directly.
+| Place this alongside the RSS feed routes at the top of web.php.
+*/
+Route::get('/og-image/{post}', [OgImageController::class, 'show'])->name('og-image');
+
+Route::get('/category/{slug}/feed', [\App\Http\Controllers\FeedController::class, 'category'])->name('feed.category');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -73,6 +95,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/following', [FollowController::class, 'following'])->name('following.index');
     Route::get('/followers', [FollowController::class, 'followers'])->name('followers.index');
 
+   // Reactions
+    Route::post('/posts/{post}/react', [ReactionController::class, 'toggle'])->middleware(['auth', 'verified'])->name('posts.react');
+    // Activity Feed
+    Route::get('/activity-feed', [ActivityFeedController::class, 'index',])->name('feed.activity');
+
     // Comment Likes
     Route::post('/comments/{comment}/like', [CommentLikeController::class, 'toggle'])->name('comments.like');
 });
@@ -84,6 +111,27 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
     Route::put('/profile',           [FrontendProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password',  [FrontendProfileController::class, 'updatePassword'])->name('profile.password');
     Route::delete('/profile/avatar', [FrontendProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+
+    Route::get('/dashboard', [ReaderDashboardController::class,'index'])->name('reader.dashboard');
+});
+
+/*
+| Reading Lists
+*/
+Route::prefix('reading-lists')->name('reading-lists.')->group(function () {
+    // Public route — anyone can view a public list
+    Route::get('/{readingList}/{slug}', [ReadingListController::class, 'show'])->name('show');
+});
+
+Route::middleware(['auth', 'verified'])->prefix('reading-lists')->name('reading-lists.')->group(function () {
+
+    Route::get('/',                                    [ReadingListController::class, 'index'])->name('index');
+    Route::post('/',                                   [ReadingListController::class, 'store'])->name('store');
+    Route::put('/{readingList}',                       [ReadingListController::class, 'update'])->name('update');
+    Route::delete('/{readingList}',                    [ReadingListController::class, 'destroy'])->name('destroy');
+    Route::post('/{readingList}/items',                [ReadingListController::class, 'toggleItem'])->name('items.toggle');
+    Route::get('/user-lists',                          [ReadingListController::class, 'getUserLists'])->name('user-lists');
+
 });
 
 // Auth Routes (Breeze handles login/register/etc.)
@@ -112,6 +160,12 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::get('posts/trash',              [PostController::class, 'trash'])->name('posts.trash');
             Route::patch('posts/{id}/restore',     [PostController::class, 'restore'])->name('posts.restore');
             Route::delete('posts/{id}/force-delete', [PostController::class, 'forceDelete'])->name('posts.force-delete');
+
+
+            // Post Revisions — nested under posts - these 3 routes are added before the post resource to avoid the conflict
+            Route::get('posts/{post}/revisions',                        [PostRevisionController::class, 'index'])->name('posts.revisions.index');
+            Route::get('posts/{post}/revisions/{revision}',             [PostRevisionController::class, 'show'])->name('posts.revisions.show');
+            Route::post('posts/{post}/revisions/{revision}/restore',    [PostRevisionController::class, 'restore'])->name('posts.revisions.restore');
             // Resource Routes after custom routes
             Route::resource('posts',      PostController::class);
 
@@ -121,13 +175,23 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
 
             // Activity Log
             Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+            Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
             // Bulk Post Actions
+            Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
             Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
 
             // Draft Autosave
             Route::post('/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
             Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+            /*
+             | POST not PUT — JavaScript fetch sends POST.
+             | No /admin prefix — already applied by the group prefix('admin').
+             */
+            Route::post('/posts/autosave',   [AutosaveController::class, 'save'])->name('posts.autosave');
+            Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+
+            Route::resource('series', AdminSeriesController::class);
 
         });
 
@@ -146,6 +210,10 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::resource('permissions', PermissionController::class);
             Route::get('users/{user}/roles', [UserRoleController::class, 'edit'])->name('users.roles.edit');
             Route::put('users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles.update');
+
+            Route::get('badges',          [BadgeController::class, 'index'])->name('badges.index');
+            Route::post('badges/award',   [BadgeController::class, 'award'])->name('badges.award');
+            Route::post('badges/revoke',  [BadgeController::class, 'revoke'])->name('badges.revoke');
         });
 
     });

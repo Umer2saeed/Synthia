@@ -8,6 +8,7 @@ use App\Models\Post;
 use App\Traits\HasSeoMeta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BookmarkController extends Controller
 {
@@ -111,6 +112,8 @@ class BookmarkController extends Controller
                 'user_id' => auth()->id(),
                 'post_id' => $post->id,
             ]);
+
+            Cache::forget('reader.dashboard.stats.' . auth()->id());
 
             return response()->json([
                 'success'    => true,

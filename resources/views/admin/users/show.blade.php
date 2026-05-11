@@ -72,7 +72,7 @@
                     </h3>
                     @if($user->username)
                         <p class="text-sm text-gray-400 dark:text-gray-500 font-mono">
-                            @{{ $user->username }}
+                            @ {{ $user->username }}
                         </p>
                     @endif
 
@@ -98,6 +98,44 @@
                             </span>
                         @endforeach
                     </div>
+                </div>
+
+                {{-- Badges section --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
+                        Badges
+                    </h3>
+
+                    @if($user->badges->isEmpty())
+                        <p class="text-xs text-gray-400 dark:text-gray-500">
+                            No badges earned yet.
+                        </p>
+                    @else
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($user->badges as $badge)
+                                <div class="flex items-center gap-1">
+                                    <span class="inline-flex items-center gap-1 px-2 py-1
+                                                 {{ $badge->color }} rounded-full text-xs font-medium">
+                                        {{ $badge->icon }} {{ $badge->name }}
+                                    </span>
+                                    {{-- Revoke button --}}
+                                    <form action="{{ route('admin.badges.revoke') }}" method="POST"
+                                          class="inline"
+                                          onsubmit="return confirm('Revoke {{ addslashes($badge->name) }} from {{ addslashes($user->name) }}?')">
+                                        @csrf
+                                        <input type="hidden" name="user_id"  value="{{ $user->id }}">
+                                        <input type="hidden" name="badge_id" value="{{ $badge->id }}">
+                                        <button type="submit"
+                                                class="text-xs text-red-400 dark:text-red-500
+                                       hover:text-red-600 dark:hover:text-red-400
+                                       transition ml-0.5">
+                                            ×
+                                        </button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="bg-white dark:bg-gray-800

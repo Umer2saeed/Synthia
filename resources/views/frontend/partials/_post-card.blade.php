@@ -108,8 +108,6 @@
                 @if($postClaps > 0)
                     <span>·</span>
                     <span class="flex items-center gap-0.5">
-{{--                👏 {{ number_format($postClaps) }}--}}
-                👏 {{ number_format($post->claps_count ?? 0) }}
                 👏 {{ number_format($post->claps_count ?? 0) }}
             </span>
                 @endif

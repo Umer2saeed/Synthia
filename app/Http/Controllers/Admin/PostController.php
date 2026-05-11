@@ -11,11 +11,14 @@ use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\PostDraft;
+use App\Models\Series;
+use App\Models\SeriesPost;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use App\Services\RevisionService;
 
 class PostController extends Controller
 {
@@ -31,13 +34,6 @@ class PostController extends Controller
     {
         $query = Post::with(['user', 'category', 'tags'])->withCount(['comments'])->latest();
 
-        /*
-        |----------------------------------------------------------------------
-        | Scope to own posts if author
-        |----------------------------------------------------------------------
-        | We check 'edit all posts' — admins and editors have it, authors don't.
-        | If the user cannot edit all posts, they can only see their own.
-        */
         if (!auth()->user()->can('edit all posts')) {
             $query->where('user_id', auth()->id());
         }
@@ -67,12 +63,13 @@ class PostController extends Controller
     {
         $categories = Category::orderBy('name')->get();
         $tags       = Tag::orderBy('name')->get();
+        $seriesList = Series::orderBy('title')->get(['id', 'title']);
 
         $autosaveDraft = PostDraft::where('user_id', auth()->id())
             ->whereNull('post_id')
             ->first();
 
-        return view('admin.posts.create', compact('categories', 'tags', 'autosaveDraft'));
+        return view('admin.posts.create', compact('categories', 'tags', 'autosaveDraft', 'seriesList'));
     }
 
     /*
@@ -100,6 +97,11 @@ class PostController extends Controller
 
         $post = Post::create($validated);
         $post->tags()->sync($request->input('tags', []));
+
+        /*
+       | Assign to series if selected in the sidebar.
+       */
+        $this->syncPostSeries($post, $request);
 
         /*
         | Dispatch optimization job only if a cover image was uploaded.
@@ -157,12 +159,24 @@ class PostController extends Controller
         $categories = Category::orderBy('name')->get();
         $tags       = Tag::orderBy('name')->get();
         $postTagIds = $post->tags->pluck('id')->toArray();
+        $seriesList  = Series::orderBy('title')->get(['id', 'title']); // ← add
+
+        /*
+        | Current series assignment for this post — if any.
+        */
+        $postSeries = $post->series->first();
+        $postSeriesOrder = $postSeries
+            ? \App\Models\SeriesPost::where('series_id', $postSeries->id)
+                ->where('post_id', $post->id)
+                ->value('order')
+            : null;
 
         $autosaveDraft = PostDraft::where('user_id', auth()->id())
             ->where('post_id', $post->id)
             ->first();
 
-        return view('admin.posts.edit', compact('post', 'categories', 'tags', 'postTagIds', 'autosaveDraft'));
+        return view('admin.posts.edit', compact(
+            'post', 'categories', 'tags', 'postTagIds', 'autosaveDraft', 'postSeries', 'postSeriesOrder', 'seriesList'));
     }
 
     /*
@@ -191,8 +205,12 @@ class PostController extends Controller
             $validated['slug'] = Post::generateUniqueSlug($validated['title'], $post->id);
         }
 
+        app(RevisionService::class)->snapshot($post);
+
         $post->update($validated);
         $post->tags()->sync($request->input('tags', []));
+
+        $this->syncPostSeries($post, $request);
 
         // Dispatch optimization for new cover image
         if ($request->hasFile('cover_image') && !empty($validated['cover_image'])) {
@@ -229,6 +247,25 @@ class PostController extends Controller
         PostDraft::where('user_id', auth()->id())->where('post_id', $post->id)->delete();
 
         return redirect()->route('admin.posts.index')->with('success', 'Post updated successfully.');
+    }
+
+    private function syncPostSeries(\App\Models\Post $post, Request $request): void
+    {
+        $seriesId = $request->input('series_id');
+        $order    = (int) $request->input('series_order', 1);
+
+        /*
+        | Remove from any existing series first.
+        */
+        SeriesPost::where('post_id', $post->id)->delete();
+
+        if ($seriesId) {
+            SeriesPost::create([
+                'series_id' => $seriesId,
+                'post_id'   => $post->id,
+                'order'     => max(1, $order),
+            ]);
+        }
     }
 
     /*

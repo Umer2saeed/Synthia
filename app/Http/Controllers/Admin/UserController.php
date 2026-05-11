@@ -65,7 +65,7 @@ class UserController extends Controller
     {
         $this->authorizeManage();
 
-        $user->load('roles');
+        $user->load('roles', 'badges');
         $user->loadCount(['posts', 'comments', 'followers', 'following']);
 
         return view('admin.users.show', compact('user'));

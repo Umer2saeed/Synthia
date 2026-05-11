@@ -10,6 +10,12 @@ use Illuminate\Support\Str;
 use App\Models\Clap;
 use App\Models\Bookmark;
 use App\Models\Reaction;
+use App\Models\Series;
+use App\Models\SeriesPost;
+
+use App\Models\PostRevision;
+
+
 
 class Post extends Model
 {
@@ -390,5 +396,31 @@ class Post extends Model
             ['like' => 0, 'insightful' => 0, 'love' => 0, 'funny' => 0],
             $counts
         );
+    }
+
+
+    /*
+    | A post can belong to multiple series.
+    | We return the first series for convenience on the post page.
+    */
+    public function series(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Series::class, 'series_posts')
+            ->withPivot('order')
+            ->orderByPivot('order', 'asc');
+    }
+
+    /*
+    | Get the first series this post belongs to (most posts are in one series).
+    | Returns null if this post is not part of any series.
+    */
+    public function getFirstSeriesAttribute(): ?Series
+    {
+        return $this->series->first();
+    }
+
+    public function revisions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PostRevision::class)->orderByDesc('created_at');
     }
 }

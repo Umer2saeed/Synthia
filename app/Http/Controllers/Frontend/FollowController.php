@@ -8,42 +8,17 @@ use App\Models\Follow;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class FollowController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | toggle() — Follow or unfollow an author (AJAX)
-    |--------------------------------------------------------------------------
-    |
-    | COMPLETE REQUEST FLOW:
-    |
-    | 1. User clicks Follow/Following button on an author profile page
-    | 2. JavaScript sends: POST /authors/{author}/follow
-    |    Headers: X-CSRF-TOKEN, X-Requested-With: XMLHttpRequest
-    | 3. Laravel routes to FollowController@toggle
-    |    Route model binding automatically finds the User by ID
-    | 4. We run multiple validation checks (guards)
-    | 5. We check if currently following
-    |    YES → unfollow → return { following: false, count: X }
-    |    NO  → follow   → return { following: true,  count: X }
-    | 6. JavaScript updates the button and follower count
-    |
-    | WHY {author} in the URL instead of /follows?
-    | Because we are acting ON a specific author — the author is the
-    | resource. /authors/{author}/follow reads naturally:
-    | "perform a follow action on this author"
-    | This follows RESTful URL design principles.
-    */
+
     public function toggle(Request $request, User $author): JsonResponse
     {
         /*
         |----------------------------------------------------------------------
         | Guard 1: Cannot follow yourself
         |----------------------------------------------------------------------
-        | If a user tries to follow their own profile, we block it.
-        | The UI already hides the button for own profile, but we
-        | always validate on the server — never trust the client alone.
         */
         if (auth()->id() === $author->id) {
             return response()->json([
@@ -71,14 +46,6 @@ class FollowController extends Controller
         |----------------------------------------------------------------------
         | Check current follow state and toggle
         |----------------------------------------------------------------------
-        | isFollowing() queries:
-        |   SELECT EXISTS(
-        |     SELECT 1 FROM follows
-        |     WHERE follower_id = {me} AND following_id = {author}
-        |   )
-        |
-        | Based on the result we call follow() or unfollow()
-        | which are the helper methods we added to the User model.
         */
         if ($currentUser->isFollowing($author)) {
             $currentUser->unfollow($author);
@@ -109,12 +76,17 @@ class FollowController extends Controller
         |----------------------------------------------------------------------
         | Get fresh follower count
         |----------------------------------------------------------------------
-        | After the follow/unfollow we count fresh from the database.
-        | We do NOT use $author->followers_count because that was
-        | loaded at the start of the request and is now stale.
-        | fresh()->followers()->count() re-queries the DB for accuracy.
         */
         $followersCount = $author->fresh()->followers()->count();
+        /*
+        | Clear the follower's activity feed cache after follow/unfollow.
+        | Their feed changes immediately when they follow or unfollow someone.
+        */
+        for ($page = 1; $page <= 5; $page++) {
+            Cache::forget('feed.user.' . auth()->id() . '.page.' . $page);
+            // After follow/unfollow, clear dashboard cache alongside feed cache
+            Cache::forget('reader.dashboard.stats.' . auth()->id());
+        }
 
         return response()->json([
             'success'         => true,
@@ -128,16 +100,6 @@ class FollowController extends Controller
     |--------------------------------------------------------------------------
     | following() — Show who the current user is following
     |--------------------------------------------------------------------------
-    |
-    | This is a regular page load — not AJAX.
-    | Shows a list of authors the current user follows.
-    |
-    | QUERY FLOW:
-    | 1. Get all Follow records where follower_id = current user
-    | 2. Eager load the 'following' relationship (the author User model)
-    | 3. For each followed author, load their published post count
-    | 4. Order by most recently followed first
-    | 5. Paginate the results
     */
     public function following()
     {
