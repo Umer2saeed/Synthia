@@ -25,3 +25,10 @@ Schedule::command('queue:monitor-synthia')->everyFiveMinutes()->runInBackground(
 Schedule::command('digest:send-weekly')->weeklyOn(1, '09:00')->withoutOverlapping()->runInBackground();
 
 Schedule::command('activity:prune')->dailyAt('02:00');
+
+
+
+Schedule::command('trending:recalculate')->everySixHours();
+
+// Keep your existing scheduled commands here too
+Schedule::command('activity:prune')->dailyAt('02:00');

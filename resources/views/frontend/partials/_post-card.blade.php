@@ -9,7 +9,7 @@
 
     {{-- Bookmark indicator badge (top right corner) --}}
     @auth
-{{--        @if($post->isBookmarkedBy(auth()->user()))--}}
+        {{--        @if($post->isBookmarkedBy(auth()->user()))--}}
         @if(($post->bookmarks_count ?? 0) > 0)
             <div class="absolute top-3 right-3 z-10">
                 <span class="flex items-center justify-center w-7 h-7 rounded-full
@@ -46,6 +46,17 @@
                 <span class="text-xs font-medium text-amber-600 dark:text-amber-400
                              bg-amber-50 dark:bg-amber-950 px-2.5 py-1 rounded-full">
                     ★ Featured
+                </span>
+            @endif
+
+            {{-- Trending badge — only shown if this post is in the trending list --}}
+            @if(isset($trendingIds) && in_array($post->id, $trendingIds))
+                <span class="inline-flex items-center gap-1 px-2 py-0.5
+                             bg-red-50 dark:bg-red-950
+                             text-red-500 dark:text-red-400
+                             text-xs font-medium rounded-full
+                             border border-red-100 dark:border-red-900">
+                    🔥 Trending
                 </span>
             @endif
         </div>

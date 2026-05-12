@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Services\CacheService;
 use App\Services\SchemaService;
+use App\Services\TrendingService;
 use App\Traits\HasSeoMeta;
 use App\Models\Post;
 use App\Models\Category;
@@ -39,9 +40,10 @@ class HomeController extends Controller
 
         $schemaWebsite = app(SchemaService::class)->website();
 
+        $trendingIds = app(TrendingService::class)->getTrendingIds();
 
         return view('frontend.home', compact(
-            'featuredPosts', 'latestPosts', 'categories', 'popularTags', 'seo', 'schemaWebsite'
+            'featuredPosts', 'latestPosts', 'categories', 'popularTags', 'seo', 'schemaWebsite', 'trendingIds'
         ));
     }
 }

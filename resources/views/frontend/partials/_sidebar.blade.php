@@ -47,4 +47,10 @@
         @endif
     </div>
 
+    {{-- Pass trending posts to the sidebar --}}
+    @php
+        $trendingPosts = app(\App\Services\TrendingService::class)->getTrending(5);
+    @endphp
+
+    @include('frontend.partials._trending-widget', ['trendingPosts' => $trendingPosts])
 </aside>

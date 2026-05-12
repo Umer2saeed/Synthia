@@ -12,8 +12,8 @@ use App\Models\Bookmark;
 use App\Models\Reaction;
 use App\Models\Series;
 use App\Models\SeriesPost;
-
 use App\Models\PostRevision;
+use App\Models\PostTrendingScore;
 
 
 
@@ -365,7 +365,7 @@ class Post extends Model
     /*
 | reactions() relationship
 */
-    public function reactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function reactions(): HasMany
     {
         return $this->hasMany(Reaction::class);
     }
@@ -403,7 +403,7 @@ class Post extends Model
     | A post can belong to multiple series.
     | We return the first series for convenience on the post page.
     */
-    public function series(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function series(): BelongsToMany
     {
         return $this->belongsToMany(Series::class, 'series_posts')
             ->withPivot('order')
@@ -419,8 +419,19 @@ class Post extends Model
         return $this->series->first();
     }
 
-    public function revisions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function revisions(): HasMany
     {
         return $this->hasMany(PostRevision::class)->orderByDesc('created_at');
+    }
+
+
+    public function trendingScore(): HasOne
+    {
+        return $this->hasOne(PostTrendingScore::class);
+    }
+
+    public function isTrending(): bool
+    {
+        return $this->trendingScore()->exists();
     }
 }

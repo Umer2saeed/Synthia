@@ -12,6 +12,7 @@ use App\Http\Controllers\Frontend\CommentLikeController;
 use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
+use App\Http\Controllers\Frontend\TrendingController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\CategoryController;
@@ -48,6 +49,7 @@ Route::get('/blog/{slug}',              [BlogController::class,         'show'])
 Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
 Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
+Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
 
 
 

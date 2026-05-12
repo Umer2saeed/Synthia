@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\StoreCommentRequest;
-use App\Jobs\SendCommentReplyNotificationJob;
 use App\Jobs\SendNewCommentNotificationJob;
 use App\Models\Clap;
 use App\Models\Reaction;
@@ -12,6 +11,7 @@ use App\Services\OgImageService;
 use App\Services\PostSearchService;
 use App\Services\PostViewService;
 use App\Services\SanitizationService;
+use App\Services\TrendingService;
 use App\Traits\HasSeoMeta;
 use App\Models\Post;
 use App\Models\Comment;
@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Bookmark;
 use App\Services\CacheService;
 use App\Support\CacheKeys;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Services\SchemaService;
@@ -44,11 +45,11 @@ class BlogController extends Controller
         $perPage = 12;
 
         if (empty($searchQuery)) {
-            $cacheKey = \App\Support\CacheKeys::blogPage($page);
+            $cacheKey = CacheKeys::blogPage($page);
 
-            $cached = \Illuminate\Support\Facades\Cache::remember(
+            $cached = Cache::remember(
                 $cacheKey,
-                \App\Services\CacheService::TTL_MEDIUM,
+                CacheService::TTL_MEDIUM,
                 function () use ($page, $perPage) {
                     /*
                     | Run a paginated query but only pluck the IDs.
@@ -119,7 +120,7 @@ class BlogController extends Controller
                 $perPage,
                 $page,
                 [
-                    'path'  => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                    'path'  => Paginator::resolveCurrentPath(),
                     'query' => $request->query(),
                 ]
             );
@@ -142,8 +143,10 @@ class BlogController extends Controller
             type:        'website',
         );
 
+        $trendingIds = app(TrendingService::class)->getTrendingIds();
+
         return view('frontend.blog', compact(
-            'posts', 'categories', 'popularTags', 'searchQuery', 'seo'
+            'posts', 'categories', 'popularTags', 'searchQuery', 'seo', 'trendingIds'
         ));
     }
 
