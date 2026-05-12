@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
-use App\Http\Controllers\FeedController;
+use App\Http\Controllers\Frontend\AuthorAnalyticsController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\ClapController;
@@ -14,7 +14,6 @@ use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\TrendingController;
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -50,8 +49,6 @@ Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])
 Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
 Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
 Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
-
-
 
 /*
 | Public Series Routes
@@ -115,6 +112,8 @@ Route::middleware(['auth'])->name('frontend.')->group(function () {
     Route::delete('/profile/avatar', [FrontendProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
     Route::get('/dashboard', [ReaderDashboardController::class,'index'])->name('reader.dashboard');
+
+    Route::get('/author/analytics', [AuthorAnalyticsController::class, 'index'])->name('author.analytics');
 });
 
 /*

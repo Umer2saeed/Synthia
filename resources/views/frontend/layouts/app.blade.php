@@ -51,6 +51,7 @@
     {{-- Tailwind via Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @stack('head')
     {{-- Prevent flash of wrong theme --}}
     <script>
         (function () {

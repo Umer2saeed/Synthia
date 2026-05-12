@@ -532,6 +532,13 @@
                                     'icon_text' => 'text-emerald-600 dark:text-emerald-400',
                                 ],
                                 [
+                                    'href'      => route('frontend.author.analytics'),
+                                    'label'     => 'My Analytics',
+                                    'icon'      => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+                                    'icon_bg'   => 'bg-indigo-100 dark:bg-indigo-500/10',
+                                    'icon_text' => 'text-indigo-600 dark:text-indigo-400',
+                                ],
+                                [
                                     'href'      => route('frontend.profile.edit'),
                                     'label'     => 'Edit Profile',
                                     'icon'      => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',

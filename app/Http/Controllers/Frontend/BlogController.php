@@ -381,6 +381,8 @@ class BlogController extends Controller
 
         SendNewCommentNotificationJob::dispatch($comment);
 
+        Cache::forget('author.analytics.' . $post->user_id);
+
         $html = view('frontend.partials._comment', compact('comment'))->render();
 
         return response()->json([

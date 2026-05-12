@@ -21,6 +21,8 @@ class PostObserver
         $this->clearFeedCache($post);
         $this->clearFollowerFeedCaches($post);
 
+        Cache::forget('author.analytics.' . $post->user_id);
+
         if ($post->status === 'published') {
             app(BadgeService::class)->checkAndAward($post->user);
         }
@@ -37,6 +39,7 @@ class PostObserver
         */
         app(OgImageService::class)->clear($post);
 
+        Cache::forget('author.analytics.' . $post->user_id);
         /*
         | Check badges when a post becomes published.
         | getOriginal('status') is the value BEFORE the update.

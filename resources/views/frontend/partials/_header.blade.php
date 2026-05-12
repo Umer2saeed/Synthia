@@ -16,8 +16,7 @@
                        class="flex items-center gap-1.5 text-sm font-medium
                           {{ request()->routeIs('feed.activity')
                               ? 'text-indigo-600 dark:text-indigo-400'
-                              : 'text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400' }}
-                          transition">
+                           : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
 {{--                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">--}}
 {{--                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"--}}
 {{--                                  d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2--}}
@@ -27,14 +26,13 @@
                     </a>
                 @endauth
 
-                    <a href="{{ route('trending') }}"
-                       class="flex items-center gap-1.5 text-sm font-medium
-                      {{ request()->routeIs('trending')
-                          ? 'text-indigo-600 dark:text-indigo-400'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400' }}
-                      transition">
-                        Trending
-                    </a>
+                <a href="{{ route('trending') }}"
+                   class="flex items-center gap-1.5 text-sm font-medium
+                  {{ request()->routeIs('trending')
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                           : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                    Trending
+                </a>
 
                 <a href="{{ route('home') }}"
                    class="text-sm font-medium transition-colors
@@ -53,10 +51,20 @@
                 @auth
                     <a href="{{ route('reading-lists.index') }}"
                        class="text-sm font-medium transition-colors
-               {{ request()->routeIs('reading-lists.index')
-                   ? 'text-indigo-600 dark:text-indigo-400'
-                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
-                        Lists
+                   {{ request()->routeIs('reading-lists.index')
+                       ? 'text-indigo-600 dark:text-indigo-400'
+                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                            Lists
+                    </a>
+                @endauth
+
+                @auth
+                    <a href="{{ route('frontend.author.analytics') }}"
+                       class="flex items-center gap-1.5 text-sm font-medium
+                      {{ request()->routeIs('frontend.author.analytics')
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                           : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                        Analytics
                     </a>
                 @endauth
 
