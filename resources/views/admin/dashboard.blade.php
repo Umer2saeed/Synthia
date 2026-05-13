@@ -563,6 +563,40 @@
                 </div>
             </div>
 
+            {{-- Weekly Report Toggle --}}
+            <div class="bg-white dark:bg-gray-800
+            rounded-xl border border-gray-200 dark:border-gray-700
+            p-5 mt-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Weekly Email Report
+                        </h3>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            Sent every Monday at 9AM to admin email
+                        </p>
+                    </div>
+
+                    @php
+                        $reportEnabled = \Illuminate\Support\Facades\Cache::get('setting.weekly_report_enabled', true);
+                    @endphp
+
+                    <form action="{{ route('admin.settings.weekly-report-toggle') }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                                class="px-4 py-2 text-sm font-medium rounded-lg transition
+                           {{ $reportEnabled
+                               ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400
+                                  hover:bg-green-200 dark:hover:bg-green-800'
+                               : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400
+                                  hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                            {{ $reportEnabled ? '✓ Enabled' : '✗ Disabled' }}
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+
         </div>
 
         {{-- =============================================

@@ -115,4 +115,9 @@ return [
         'name'    => env('MAIL_FROM_NAME', 'Synthia'),
     ],
 
+    /*
+    | Admin email for system notifications like weekly reports.
+    */
+    'admin_address' => env('MAIL_ADMIN_ADDRESS', null),
+
 ];

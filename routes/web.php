@@ -4,15 +4,20 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AutosaveController;
 use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
+use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorAnalyticsController;
 use App\Http\Controllers\Frontend\AuthorController;
 use App\Http\Controllers\Frontend\BookmarkController;
 use App\Http\Controllers\Frontend\ClapController;
+use App\Http\Controllers\Frontend\CommentFlagController;
 use App\Http\Controllers\Frontend\CommentLikeController;
 use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\TrendingController;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CommentController;
@@ -63,8 +68,8 @@ Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.sh
 | These must be publicly accessible — no auth middleware.
 | RSS readers are automated bots that do not have sessions.
 */
-Route::get('/feed', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.index');
-Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
+Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
+Route::get('/rss', [FeedController::class, 'index'])->name('feed.rss'); // alias — /rss redirects to same feed
 /*
 | OG Image Route — public, no auth required.
 | Search engines and social platforms fetch this URL directly.
@@ -72,7 +77,7 @@ Route::get('/rss', [\App\Http\Controllers\FeedController::class, 'index'])->name
 */
 Route::get('/og-image/{post}', [OgImageController::class, 'show'])->name('og-image');
 
-Route::get('/category/{slug}/feed', [\App\Http\Controllers\FeedController::class, 'category'])->name('feed.category');
+Route::get('/category/{slug}/feed', [FeedController::class, 'category'])->name('feed.category');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -102,6 +107,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Comment Likes
     Route::post('/comments/{comment}/like', [CommentLikeController::class, 'toggle'])->name('comments.like');
+
+    // Flag a comment as inappropriate
+    Route::post('/comments/{comment}/flag', [CommentFlagController::class, 'flag'])->name('comments.flag');
 });
 
 Route::middleware(['auth'])->name('frontend.')->group(function () {
@@ -203,6 +211,11 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::post('/media/bulk-delete',  [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
             Route::delete('/media/{media}',    [MediaController::class, 'destroy'])->name('media.destroy');
 
+            // Export routes
+            Route::get('/export',              [ExportController::class, 'index'])->name('export.index');
+            Route::post('/export/csv',         [ExportController::class, 'exportCsv'])->name('export.csv');
+            Route::get('/export/pdf/{post}',   [ExportController::class, 'exportPdf'])->name('export.pdf');
+            Route::get('/export/download',     [ExportController::class, 'download'])->name('export.download');
         });
 
         // Comment Management
@@ -210,6 +223,13 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::get('comments',                     [CommentController::class, 'index'])->name('comments.index');
             Route::patch('comments/{comment}/approve', [CommentController::class, 'approve'])->name('comments.approve');
             Route::delete('comments/{comment}',        [CommentController::class, 'destroy'])->name('comments.destroy');
+
+            // Moderation queue routes
+            Route::get('moderation',                         [ModerationController::class, 'index'])->name('moderation.index');
+            Route::patch('moderation/{comment}/approve',     [ModerationController::class, 'approve'])->name('moderation.approve');
+            Route::patch('moderation/{comment}/reject',      [ModerationController::class, 'reject'])->name('moderation.reject');
+            Route::patch('moderation/{comment}/dismiss',     [ModerationController::class, 'dismiss'])->name('moderation.dismiss');
+            Route::post('moderation/bulk',                   [ModerationController::class, 'bulk'])->name('moderation.bulk');
         });
 
         // Admin-only Management (Users, Roles, Permissions)
@@ -224,6 +244,12 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::get('badges',          [BadgeController::class, 'index'])->name('badges.index');
             Route::post('badges/award',   [BadgeController::class, 'award'])->name('badges.award');
             Route::post('badges/revoke',  [BadgeController::class, 'revoke'])->name('badges.revoke');
+
+            Route::post('settings/weekly-report-toggle', function () {
+                $current = Cache::get('setting.weekly_report_enabled', true);
+                Cache::forever('setting.weekly_report_enabled', !$current);
+                return back()->with('success', 'Weekly report ' . (!$current ? 'enabled' : 'disabled') . '.');
+            })->name('settings.weekly-report-toggle');
         });
 
     });

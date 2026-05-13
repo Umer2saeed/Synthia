@@ -11,6 +11,7 @@ use App\Services\OgImageService;
 use App\Services\PostSearchService;
 use App\Services\PostViewService;
 use App\Services\SanitizationService;
+use App\Services\SpamFilterService;
 use App\Services\TrendingService;
 use App\Traits\HasSeoMeta;
 use App\Models\Post;
@@ -370,12 +371,25 @@ class BlogController extends Controller
     {
         $post = Post::published()->findOrFail($request->validated()['post_id']);
 
+        $isSpam = app(SpamFilterService::class)->isSpam($request->validated()['content']);
+
+
         $comment = Comment::create([
             'user_id'     => auth()->id(),
             'post_id'     => $post->id,
             'content'     => $request->validated()['content'],
             'is_approved' => true,
+            /*
+            | Spam comments are auto-held as pending.
+            | Trusted users (editors, admins) get auto-approved.
+            | Everyone else is pending by default.
+            */
+            'status'  => $this->resolveCommentStatus($request->validated()['content'], $isSpam),
         ]);
+
+        $message = $comment->status === 'approved'
+            ? 'Comment posted.'
+            : 'Your comment is awaiting moderation.';
 
         $comment->load('user');
 
@@ -389,17 +403,27 @@ class BlogController extends Controller
             'success' => true,
             'html'    => $html,
             'count'   => $post->comments()->approved()->count(),
-            'message' => 'Comment posted successfully.',
+            'message' => $message,
         ]);
     }
 
     public function destroyComment(Request $request, Comment $comment): JsonResponse
     {
-        if ($comment->user_id !== auth()->id()) {
+        $user = auth()->user();
+
+        /*
+        | Admins and editors can delete any comment.
+        | Regular users can only delete their own.
+        */
+        $canDelete = $user->hasAnyRole(['admin', 'editor'])
+            || $user->can('delete comments')
+            || $comment->user_id === $user->id;
+
+        if (!$canDelete) {
             return response()->json([
                 'success' => false,
-                'message' => 'You can only delete your own comments.',
-            ], 403);
+                'message' => 'Cannot delete the comment.',
+            ]);
         }
 
         $comment->delete();
@@ -408,5 +432,16 @@ class BlogController extends Controller
             'success' => true,
             'message' => 'Comment deleted.',
         ]);
+    }
+
+    private function resolveCommentStatus(string $content, bool $isSpam): string
+    {
+        if ($isSpam) return 'pending';
+
+        $user = auth()->user();
+
+        if ($user->hasAnyRole(['admin', 'editor'])) return 'approved';
+
+        return 'pending';
     }
 }
