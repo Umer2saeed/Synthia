@@ -260,6 +260,7 @@
             let lbCurrent = 0;
 
             function buildLightboxData() {
+                // Always rebuild from DOM — picks up newly uploaded images
                 lbItems = Array.from(document.querySelectorAll('[data-lb-url]')).map(el => ({
                     url:  el.dataset.lbUrl,
                     name: el.dataset.lbName,
@@ -268,9 +269,10 @@
                 }));
             }
 
-            function openLightbox(index) {
+            function openLightboxByUrl(url) {
                 buildLightboxData();
-                lbCurrent = index;
+                lbCurrent = lbItems.findIndex(item => item.url === url);
+                if (lbCurrent === -1) lbCurrent = 0;
                 showLightboxItem();
                 lightbox.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -293,7 +295,23 @@
             }
 
             lbClose?.addEventListener('click', closeLightbox);
-            lightbox?.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+
+            // WITH this — use closest() to detect clicks outside the image container:
+            lightbox?.addEventListener('click', function (e) {
+                /*
+                | Close if click lands directly on the dark overlay (not on the image,
+                | buttons, or caption). We check that the clicked element is not
+                | inside the image wrapper div.
+                */
+                if (!e.target.closest('#lb-img') &&
+                    !e.target.closest('#lb-prev') &&
+                    !e.target.closest('#lb-next') &&
+                    !e.target.closest('#lb-close') &&
+                    !e.target.closest('#lb-caption') &&
+                    !e.target.closest('#lb-meta')) {
+                    closeLightbox();
+                }
+            });
 
             lbPrev?.addEventListener('click', () => {
                 if (lbCurrent > 0) { lbCurrent--; showLightboxItem(); }
@@ -311,11 +329,15 @@
                 if (e.key === 'ArrowRight')  { if (lbCurrent < lbItems.length - 1) { lbCurrent++; showLightboxItem(); } }
             });
 
-            // Bind click on all thumbnail images
             function bindThumbnailClicks() {
-                document.querySelectorAll('[data-lb-index]').forEach(el => {
+                document.querySelectorAll('[data-lb-url]').forEach(el => {
+                    // Remove old listener before adding new one to prevent doubles
+                    el.replaceWith(el.cloneNode(true));
+                });
+
+                document.querySelectorAll('[data-lb-url]').forEach(el => {
                     el.addEventListener('click', function () {
-                        openLightbox(parseInt(this.dataset.lbIndex));
+                        openLightboxByUrl(this.dataset.lbUrl);
                     });
                 });
             }
@@ -345,16 +367,46 @@
                         });
                         const data = await res.json();
 
-                        if (data.success) {
+                        if (res.ok && data.success) {
                             setRowStatus(row, '✓ Uploaded', 'text-green-500 dark:text-green-400');
                             if (grid) prependGridItem(data.media);
+                        } else if (res.status === 422 && data.errors) {
+                            /*
+                            | Laravel validation failed — extract the first error message.
+                            | Common: file too large, wrong type, missing file.
+                            */
+                            const firstError = Object.values(data.errors)[0]?.[0] ?? 'Validation failed.';
+                            setRowStatus(row, '✗ ' + firstError, 'text-red-500 dark:text-red-400');
+                        } else if (res.status === 413) {
+                            /*
+                            | 413 Payload Too Large — server-level file size limit (php.ini).
+                            | This is different from Laravel's max:4096 rule.
+                            */
+                            setRowStatus(row,
+                                '✗ File too large for server (check upload_max_filesize in php.ini)',
+                                'text-red-500 dark:text-red-400'
+                            );
                         } else {
-                            setRowStatus(row, '✗ Failed', 'text-red-500 dark:text-red-400');
+                            const msg = data.message ?? 'Upload failed. Try again.';
+                            setRowStatus(row, '✗ ' + msg, 'text-red-500 dark:text-red-400');
                         }
-                    } catch {
-                        setRowStatus(row, '✗ Error', 'text-red-500 dark:text-red-400');
+                    } catch (err) {
+                        /*
+                        | Network error — no response received at all.
+                        | This happens when the server is down or the request timed out.
+                        */
+                        setRowStatus(row,
+                            '✗ Network error — check your connection and try again',
+                            'text-red-500 dark:text-red-400'
+                        );
                     }
                 }
+
+                // After the for (const file of files) loop:
+                setTimeout(function () {
+                    uploadArea.classList.add('hidden');
+                    uploadArea.innerHTML = '';
+                }, 3000); // clear progress messages after 3 seconds
 
                 uploadInput.value = '';
                 // Rebuild lightbox data to include newly uploaded images
@@ -387,45 +439,42 @@
             function prependGridItem(media) {
                 if (!grid) return;
 
-                const index = document.querySelectorAll('[data-lb-index]').length;
-
                 const wrapper = document.createElement('div');
                 wrapper.className = 'group relative rounded-xl overflow-hidden cursor-pointer select-none';
                 wrapper.innerHTML = `
-                <div class="relative aspect-square overflow-hidden
-                            bg-gray-100 dark:bg-gray-700
-                            border border-gray-200 dark:border-gray-700
-                            hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors">
-                    <input type="checkbox" name="ids[]" value="${media.id}"
-                           class="media-checkbox absolute top-2 left-2 z-20
-                                  w-4 h-4 rounded border-2 border-white dark:border-gray-300
-                                  bg-white/80 dark:bg-gray-800/80
-                                  text-indigo-600 focus:ring-indigo-400
-                                  opacity-0 group-hover:opacity-100 transition-opacity"
-                           onclick="event.stopPropagation()">
-                    <img src="${media.url}"
-                         alt="${escapeHtml(media.original_name)}"
-                         data-lb-index="${index}"
-                         data-lb-url="${media.url}"
-                         data-lb-name="${escapeHtml(media.original_name)}"
-                         data-lb-size="${media.formatted_size}"
-                         data-lb-dims="${media.width && media.height ? media.width + '×' + media.height : ''}"
-                         class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                         loading="lazy">
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
-                </div>
-                <div class="pt-1.5 pb-1 px-0.5">
-                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                        ${escapeHtml(media.original_name)}
-                    </p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">
-                        ${media.formatted_size}${media.width ? ' · ' + media.width + '×' + media.height : ''}
-                    </p>
-                </div>
-            `;
+        <div class="relative aspect-square overflow-hidden rounded-xl
+                    bg-gray-100 dark:bg-gray-700
+                    border border-gray-200 dark:border-gray-700
+                    hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors">
+            <input type="checkbox" name="ids[]" value="${media.id}"
+                   class="media-checkbox absolute top-2 left-2 z-20
+                          w-4 h-4 rounded border-2 border-white dark:border-gray-300
+                          bg-white/80 dark:bg-gray-800/80
+                          text-indigo-600 focus:ring-indigo-400
+                          opacity-0 group-hover:opacity-100 transition-opacity"
+                   onclick="event.stopPropagation()">
+            <img src="${media.url}"
+                 alt="${escapeHtml(media.original_name)}"
+                 data-lb-url="${media.url}"
+                 data-lb-name="${escapeHtml(media.original_name)}"
+                 data-lb-size="${media.formatted_size}"
+                 data-lb-dims="${media.width && media.height ? media.width + '×' + media.height : ''}"
+                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                 loading="lazy">
+        </div>
+        <div class="pt-1.5 pb-1 px-0.5">
+            <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                ${escapeHtml(media.original_name)}
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">
+                ${media.formatted_size}
+            </p>
+        </div>
+    `;
 
                 grid.prepend(wrapper);
                 rebindCheckboxes();
+                // Rebind lightbox clicks to include the new item
                 bindThumbnailClicks();
             }
 

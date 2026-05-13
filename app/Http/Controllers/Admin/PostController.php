@@ -14,6 +14,7 @@ use App\Models\PostDraft;
 use App\Models\Series;
 use App\Models\SeriesPost;
 use App\Models\Tag;
+use App\Services\SanitizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -94,6 +95,10 @@ class PostController extends Controller
 
         $validated['user_id']    = auth()->id();
         $validated['is_featured'] = $request->boolean('is_featured');
+
+        // In store() and update(), before Post::create() or $post->update():
+        $sanitizer = app(SanitizationService::class);
+        $validated['content'] = $sanitizer->cleanRichText($validated['content'] ?? '');
 
         $post = Post::create($validated);
         $post->tags()->sync($request->input('tags', []));
@@ -206,6 +211,10 @@ class PostController extends Controller
         }
 
         app(RevisionService::class)->snapshot($post);
+
+        // In store() and update(), before Post::create() or $post->update():
+        $sanitizer = app(SanitizationService::class);
+        $validated['content'] = $sanitizer->cleanRichText($validated['content'] ?? '');
 
         $post->update($validated);
         $post->tags()->sync($request->input('tags', []));

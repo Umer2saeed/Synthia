@@ -192,10 +192,17 @@
                         </td>
 
                         <td class="px-5 py-3">
+{{--                            <img src="{{ $post->cover_image_url }}"--}}
+{{--                                 alt="{{ $post->title }}"--}}
+{{--                                 class="w-12 h-12 object-cover rounded-lg--}}
+{{--                                            border border-gray-200 dark:border-gray-700">--}}
                             <img src="{{ $post->cover_image_url }}"
                                  alt="{{ $post->title }}"
+                                 data-single-lightbox="{{ $post->cover_image_url }}"
+                                 data-single-lightbox-name="{{ $post->title }}"
                                  class="w-12 h-12 object-cover rounded-lg
-                                            border border-gray-200 dark:border-gray-700">
+                                    border border-gray-200 dark:border-gray-700
+                                    cursor-pointer hover:opacity-80 transition-opacity">
                         </td>
 
                         <td class="px-5 py-3">
@@ -306,6 +313,58 @@
 
     </div>
 
+    {{-- Single-image lightbox (no navigation, used for post cover thumbnails) --}}
+    <div id="single-lightbox"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center
+            bg-black/85 backdrop-blur-sm cursor-pointer"
+         onclick="document.getElementById('single-lightbox').classList.add('hidden');
+              document.body.style.overflow='';">
+
+        <button type="button"
+                class="absolute top-4 right-4 w-10 h-10 rounded-full
+                   bg-white/10 hover:bg-white/20
+                   flex items-center justify-center transition">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <img id="single-lb-img" src="" alt=""
+             class="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain"
+             onclick="event.stopPropagation()">
+
+        <p id="single-lb-caption"
+           class="absolute bottom-6 left-1/2 -translate-x-1/2
+              text-white text-sm bg-black/40 rounded-lg px-4 py-2 text-center max-w-md">
+        </p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const lb      = document.getElementById('single-lightbox');
+            const lbImg   = document.getElementById('single-lb-img');
+            const lbCap   = document.getElementById('single-lb-caption');
+
+            document.querySelectorAll('[data-single-lightbox]').forEach(function (img) {
+                img.addEventListener('click', function () {
+                    lbImg.src            = this.dataset.singleLightbox;
+                    lbImg.alt            = this.dataset.singleLightboxName;
+                    lbCap.textContent    = this.dataset.singleLightboxName;
+                    lb.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !lb.classList.contains('hidden')) {
+                    lb.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+    </script>
+
     <script>
         /*
         |--------------------------------------------------------------------------
@@ -388,4 +447,6 @@
 
         });
     </script>
+
+
 </x-app-layout>

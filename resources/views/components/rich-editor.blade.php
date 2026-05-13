@@ -50,7 +50,7 @@
          class="flex flex-wrap items-center gap-0.5 p-2
                 bg-gray-50 dark:bg-gray-800
                 border border-gray-200 dark:border-gray-700
-                rounded-t-xl">
+                rounded-t-xl sticky top-0 z-10">
 
         {{-- Text Formatting Group --}}
         <div class="flex items-center gap-0.5 pr-2 mr-1

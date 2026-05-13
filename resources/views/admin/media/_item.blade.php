@@ -58,7 +58,7 @@
         {{-- Thumbnail image --}}
         <img src="{{ $item->url }}"
              alt="{{ $item->original_name }}"
-             data-lb-index="{{ $loop->index }}"
+{{--             data-lb-index="{{ $loop->index }}"--}}
              data-lb-url="{{ $item->url }}"
              data-lb-name="{{ $item->original_name }}"
              data-lb-size="{{ $item->formatted_size }}"
@@ -86,11 +86,26 @@
                 · {{ $dims }}
             @endif
         </p>
-        @php $usedIn = $item->used_in_posts_count; @endphp
-        @if($usedIn > 0)
-            <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
-                Used in {{ $usedIn }} {{ Str::plural('post', $usedIn) }}
-            </p>
+{{--        @php $usedIn = $item->used_in_posts_count; @endphp--}}
+{{--        @if($usedIn > 0)--}}
+{{--            <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">--}}
+{{--                Used in {{ $usedIn }} {{ Str::plural('post', $usedIn) }}--}}
+{{--            </p>--}}
+{{--        @endif--}}
+
+        @php $usedInPosts = $item->used_in_posts; @endphp
+        @if($usedInPosts->isNotEmpty())
+            <div class="mt-0.5">
+                @foreach($usedInPosts as $post)
+                    <a href="{{ route('admin.posts.show', $post) }}"
+                       target="_blank"
+                       class="block text-xs text-indigo-500 dark:text-indigo-400
+                      hover:underline truncate"
+                       title="{{ $post->title }}">
+                        ↗ {{ Str::limit($post->title, 30) }}
+                    </a>
+                @endforeach
+            </div>
         @endif
     </div>
 

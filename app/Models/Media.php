@@ -45,12 +45,16 @@ class Media extends Model
     }
 
     /*
-    | Count how many posts reference this media file URL in their content.
-    */
-    public function getUsedInPostsCountAttribute(): int
+| Returns posts that reference this media file.
+| Checks both post content (as img src) and cover_image column.
+*/
+    public function getUsedInPostsAttribute(): \Illuminate\Support\Collection
     {
-        return Post::where('content', 'like', '%' . $this->filename . '%')
-            ->orWhere('cover_image', 'like', '%' . $this->filename . '%')
-            ->count();
+        return Post::where(function ($q) {
+            $q->where('content', 'like', '%' . $this->filename . '%')
+                ->orWhere('cover_image', 'like', '%' . $this->filename . '%');
+        })
+            ->select(['id', 'title', 'slug'])
+            ->get();
     }
 }

@@ -70,39 +70,39 @@ class SanitizationService
     | Used for: post body content, post summary.
     | Falls back to strip_tags() if HTMLPurifier is unavailable.
     */
-    public function cleanRichText(?string $value): string
+    public function cleanRichText(string $html): string
     {
-        if ($value === null || trim($value) === '') {
-            return '';
+        $config = \HTMLPurifier_Config::createDefault();
+
+        $config->set('HTML.Allowed',
+            'p,br,strong,b,em,i,u,s,strike,' .
+            'h2,h3,h4,' .
+            'ul,ol,li,' .
+            'blockquote,pre,code,' .
+            'img[src|alt|title|width|height],' .
+            'a[href|title|target|rel],' .
+            'hr,div[class],span[class],' .
+            'table,thead,tbody,tr,th,td'
+        );
+
+        // Explicitly deny script and style tags
+        $config->set('HTML.ForbiddenElements', 'script,style,iframe,object,embed,form,input');
+        $config->set('HTML.ForbiddenAttributes', 'onclick,onload,onerror,onmouseover,javascript:*');
+
+        $config->set('URI.AllowedSchemes', ['http' => true, 'https' => true, 'mailto' => true]);
+        $config->set('CSS.AllowedProperties', []);
+        $config->set('AutoFormat.AutoParagraph', false);
+        $config->set('AutoFormat.RemoveEmpty', true);
+
+        // Cache directory for HTMLPurifier
+        $config->set('Cache.SerializerPath', storage_path('framework/cache/purifier'));
+
+        if (!is_dir(storage_path('framework/cache/purifier'))) {
+            mkdir(storage_path('framework/cache/purifier'), 0755, true);
         }
 
-        /*
-        | Try HTMLPurifier first — it is the correct tool for rich text.
-        | If it throws any exception (misconfiguration, missing cache dir, etc.)
-        | we fall back to a manual approach that is still safe.
-        */
-        try {
-            if (function_exists('clean')) {
-                $cleaned = clean($value, 'post_content');
-
-                /*
-                | HTMLPurifier sometimes returns empty string for valid content.
-                | If the result is empty but input was not, fall back to strip_tags.
-                | This prevents the "content cannot be empty" validation failure.
-                */
-                if (trim($cleaned) === '' && trim($value) !== '') {
-                    return $this->fallbackRichTextClean($value);
-                }
-
-                return $cleaned;
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('SanitizationService: HTMLPurifier failed, using fallback', [
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return $this->fallbackRichTextClean($value);
+        $purifier = new \HTMLPurifier($config);
+        return $purifier->purify($html);
     }
 
     /*

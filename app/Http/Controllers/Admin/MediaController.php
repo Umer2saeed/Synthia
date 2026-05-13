@@ -40,7 +40,18 @@ class MediaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'file'   => ['required', 'file', 'image', 'max:4096'],
+            'file' => [
+                'required',
+                'file',
+                'image',
+                'max:4096', // 4MB
+                'mimes:jpg,jpeg,png,webp,gif',
+            ],
+        ], [
+            'file.max'    => 'Image is too large. Maximum allowed size is 4MB.',
+            'file.image'  => 'The uploaded file must be an image.',
+            'file.mimes'  => 'Only JPG, PNG, WEBP, and GIF images are allowed.',
+            'file.required' => 'Please select an image to upload.',
         ]);
 
         $media = $this->mediaService->store($request->file('file'));
@@ -75,13 +86,13 @@ class MediaController extends Controller
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $request->validate([
-            'ids'   => ['required', 'array'],
+            'ids'   => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:media,id'],
         ]);
 
         $count = $this->mediaService->bulkDelete($request->ids);
 
-        return back()->with('success', "{$count} " . Str::plural('image', $count) . ' deleted.');
+        return back()->with('success', "{$count} " . \Str::plural('image', $count) . ' deleted.');
     }
 
     /*
