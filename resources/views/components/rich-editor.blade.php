@@ -39,13 +39,7 @@
         value="{{ $value }}"
     >
 
-    {{--
-    |----------------------------------------------------------------------
-    | TOOLBAR
-    |----------------------------------------------------------------------
-    | Each button has data-action which the JavaScript reads.
-    | Buttons get 'is-active' class when their format is active in editor.
-    --}}
+    {{--TOOLBAR--}}
     <div data-editor-toolbar
          class="flex flex-wrap items-center gap-0.5 p-2
                 bg-gray-50 dark:bg-gray-800
