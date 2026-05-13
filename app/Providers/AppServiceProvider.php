@@ -11,6 +11,7 @@ use App\Observers\TagObserver;
 use App\Services\BadgeService;
 use App\Services\CacheService;
 use App\Services\ImageOptimizationService;
+use App\Services\MediaService;
 use App\Services\OgImageService;
 use App\Services\PostViewService;
 use App\Services\RevisionService;
@@ -58,6 +59,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SchemaService::class);
 
         $this->app->singleton(TrendingService::class);
+
+        $this->app->singleton(MediaService::class);
     }
 
     /**

@@ -46,6 +46,7 @@ function initEditor(container, hiddenInput, initialContent) {
     |----------------------------------------------------------------------
     */
     const editor = new Editor({
+
         /*
         | element: where TipTap renders the contenteditable div
         */
@@ -109,6 +110,11 @@ function initEditor(container, hiddenInput, initialContent) {
             | We use this to show a live word count below the editor.
             */
             CharacterCount,
+
+            Image.configure({
+                inline: false,
+                allowBase64: false,
+            }),
         ],
 
         /*
@@ -149,6 +155,9 @@ function initEditor(container, hiddenInput, initialContent) {
             updateWordCount(container, editor);
         },
     });
+
+    // After creating the editor instance, add:
+    window.tiptapEditor = editor;
 
     /*
     |----------------------------------------------------------------------

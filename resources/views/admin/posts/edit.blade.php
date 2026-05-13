@@ -433,6 +433,287 @@
         </form>
     </div>
 
+    {{-- =============================================
+     MEDIA LIBRARY PICKER MODAL
+============================================= --}}
+    <div id="media-modal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4
+            bg-black/70 backdrop-blur-sm">
+
+        <div class="bg-white dark:bg-gray-900
+                rounded-2xl w-full max-w-3xl
+                flex flex-col shadow-2xl
+                border border-gray-200 dark:border-gray-700
+                max-h-[85vh]">
+
+            {{-- Modal header --}}
+            <div class="flex items-center gap-3 px-5 py-4 shrink-0
+                    border-b border-gray-100 dark:border-gray-800">
+
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-white flex-1">
+                    Media Library
+                </h3>
+
+                <input type="text"
+                       id="modal-search"
+                       placeholder="Search..."
+                       class="border border-gray-200 dark:border-gray-700
+                          bg-gray-50 dark:bg-gray-800
+                          text-gray-800 dark:text-gray-200
+                          placeholder-gray-400 dark:placeholder-gray-500
+                          rounded-lg px-3 py-1.5 text-sm w-40
+                          focus:outline-none focus:ring-2 focus:ring-indigo-400">
+
+                <button type="button"
+                        id="modal-close"
+                        class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800
+                           flex items-center justify-center
+                           hover:bg-gray-200 dark:hover:bg-gray-700
+                           transition shrink-0">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+            </div>
+
+            {{-- Scrollable image grid --}}
+            <div class="flex-1 overflow-y-auto p-4">
+
+                <div id="modal-grid"
+                     class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    <div class="col-span-full flex items-center justify-center py-12">
+                        <p class="text-sm text-gray-400 dark:text-gray-500">
+                            Loading...
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Load more --}}
+                <div id="modal-load-more" class="hidden text-center mt-4 pt-4
+                                              border-t border-gray-100 dark:border-gray-800">
+                    <button type="button"
+                            class="px-5 py-2 text-sm font-medium
+                               text-indigo-600 dark:text-indigo-400
+                               border border-indigo-200 dark:border-indigo-800
+                               rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950
+                               transition">
+                        Load more
+                    </button>
+                </div>
+
+            </div>
+
+            {{-- Modal footer --}}
+            <div class="px-5 py-3 shrink-0
+                    border-t border-gray-100 dark:border-gray-800
+                    flex items-center justify-between">
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    Click an image to insert it at the cursor
+                </p>
+                <a href="{{ route('admin.media.index') }}"
+                   target="_blank"
+                   class="text-xs text-indigo-500 dark:text-indigo-400 hover:underline">
+                    Manage Library →
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        (function () {
+
+            const modal       = document.getElementById('media-modal');
+            const openBtn     = document.getElementById('media-picker-btn');
+            const closeBtn    = document.getElementById('modal-close');
+            const searchInput = document.getElementById('modal-search');
+            const gridEl      = document.getElementById('modal-grid');
+            const loadMoreEl  = document.getElementById('modal-load-more');
+
+            if (!modal || !openBtn) return;
+
+            let nextPageUrl  = null;
+            let searchTimer  = null;
+            let isLoading    = false;
+
+            // ── Open / close ────────────────────────────────────────────────────
+            openBtn.addEventListener('click', function () {
+                modal.classList.remove('hidden');
+                loadImages('{{ route('admin.media.api') }}', true);
+            });
+
+            closeBtn?.addEventListener('click',  () => modal.classList.add('hidden'));
+            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') modal.classList.add('hidden');
+            });
+
+            // ── Live search ─────────────────────────────────────────────────────
+            searchInput?.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    const q   = this.value.trim();
+                    const url = '{{ route('admin.media.api') }}' + (q ? '?search=' + encodeURIComponent(q) : '');
+                    loadImages(url, true);
+                }, 300);
+            });
+
+            // ── Load more ────────────────────────────────────────────────────────
+            loadMoreEl?.addEventListener('click', function () {
+                if (nextPageUrl && !isLoading) loadImages(nextPageUrl, false);
+            });
+
+            // ── Fetch images from API ────────────────────────────────────────────
+            async function loadImages(url, replace) {
+                if (isLoading) return;
+                isLoading = true;
+
+                if (replace) {
+                    gridEl.innerHTML = `
+                <div class="col-span-full flex items-center justify-center py-12">
+                    <p class="text-sm text-gray-400 dark:text-gray-500">Loading...</p>
+                </div>`;
+                    loadMoreEl.classList.add('hidden');
+                }
+
+                try {
+                    const res  = await fetch(url, {
+                        headers: {
+                            'Accept':           'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const data = await res.json();
+
+                    if (replace) gridEl.innerHTML = '';
+
+                    if (!data.data || !data.data.length) {
+                        if (replace) {
+                            gridEl.innerHTML = `
+                        <div class="col-span-full flex items-center justify-center py-12">
+                            <p class="text-sm text-gray-400 dark:text-gray-500">No images found.</p>
+                        </div>`;
+                        }
+                        loadMoreEl.classList.add('hidden');
+                        return;
+                    }
+
+                    data.data.forEach(item => gridEl.appendChild(buildCard(item)));
+
+                    nextPageUrl = data.next_page_url;
+                    loadMoreEl.classList.toggle('hidden', !nextPageUrl);
+
+                } catch (err) {
+                    console.error('Media API error:', err);
+                    if (replace) {
+                        gridEl.innerHTML = `
+                    <div class="col-span-full flex items-center justify-center py-12">
+                        <p class="text-sm text-red-400">Failed to load images.</p>
+                    </div>`;
+                    }
+                } finally {
+                    isLoading = false;
+                }
+            }
+
+            // ── Build a single image card ─────────────────────────────────────────
+            function buildCard(item) {
+                const div = document.createElement('div');
+
+                div.className = [
+                    'group relative cursor-pointer rounded-xl overflow-hidden',
+                    'border-2 border-transparent',
+                    'hover:border-indigo-500 dark:hover:border-indigo-400',
+                    'transition-all duration-150',
+                    'bg-gray-100 dark:bg-gray-800',
+                ].join(' ');
+
+                /*
+                | aspect-square makes every card a perfect square.
+                | object-cover fills it completely — consistent thumbnail sizes.
+                */
+                div.innerHTML = `
+            <div class="aspect-square overflow-hidden relative">
+                <img src="${item.url}"
+                     alt="${escapeHtml(item.original_name)}"
+                     class="w-full h-full object-cover
+                            group-hover:scale-105 transition-transform duration-300"
+                     loading="lazy">
+                <div class="absolute inset-0 bg-black/0
+                            group-hover:bg-black/10 transition-colors pointer-events-none">
+                </div>
+            </div>
+            <div class="p-1.5">
+                <p class="text-xs font-medium
+                           text-gray-700 dark:text-gray-300
+                           truncate leading-tight">
+                    ${escapeHtml(item.original_name)}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    ${item.formatted_size}
+                    ${item.width ? '· ' + item.width + '×' + item.height : ''}
+                </p>
+            </div>
+        `;
+
+                /*
+                | INSERT into TipTap on click.
+                |
+                | window.tiptapEditor must be set in editor.js.
+                | We call setImage() which is built into TipTap's Image extension.
+                | If the extension is not configured, we fall back to inserting
+                | an HTML string via insertContent().
+                */
+                div.addEventListener('click', function () {
+                    const editor = window.tiptapEditor;
+
+                    if (!editor) {
+                        console.error(
+                            'window.tiptapEditor is not defined. ' +
+                            'Add "window.tiptapEditor = editor" in your editor.js after the Editor is created.'
+                        );
+                        alert('Editor not ready. Please ensure you are on the post create/edit page.');
+                        return;
+                    }
+
+                    try {
+                        if (editor.can().setImage({ src: item.url })) {
+                            editor.chain().focus().setImage({
+                                src: item.url,
+                                alt: item.original_name,
+                            }).run();
+                        } else {
+                            /*
+                            | Fallback: insert as raw HTML.
+                            | Works even if the Image extension uses a different command name.
+                            */
+                            editor.chain().focus().insertContent(
+                                `<img src="${item.url}" alt="${escapeHtml(item.original_name)}">`
+                            ).run();
+                        }
+                    } catch (err) {
+                        console.error('TipTap insert error:', err);
+                    }
+
+                    modal.classList.add('hidden');
+                });
+
+                return div;
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+        })();
+    </script>
+
     <script>
         document.getElementById('cover_image').addEventListener('change', function () {
             const file = this.files[0];

@@ -34,6 +34,7 @@ use App\Http\Controllers\Frontend\ReaderDashboardController;
 use App\Http\Controllers\Frontend\ReadingListController;
 use App\Http\Controllers\Frontend\TagPageController;
 use App\Http\Controllers\Frontend\SeriesController;
+use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 
 
@@ -193,6 +194,14 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
 
             Route::resource('series', AdminSeriesController::class);
+
+            // Media Library routes
+            // Media Library — order matters: specific routes before {media} parameter
+            Route::get('/media',                [MediaController::class, 'index'])->name('media.index');
+            Route::get('/media/api',            [MediaController::class, 'apiIndex'])->name('media.api');
+            Route::post('/media/upload',        [MediaController::class, 'store'])->name('media.store');
+            Route::post('/media/bulk-delete',   [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+            Route::delete('/media/{media}',     [MediaController::class, 'destroy'])->name('media.destroy');
 
         });
 
