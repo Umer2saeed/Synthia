@@ -32,3 +32,6 @@ Schedule::command('trending:recalculate')->everySixHours();
 
 // Keep your existing scheduled commands here too
 Schedule::command('activity:prune')->dailyAt('02:00');
+
+Schedule::command('report:weekly')->weeklyOn(1, '9:00');
+// weeklyOn(1, '9:00') = every Monday at 9:00 AM

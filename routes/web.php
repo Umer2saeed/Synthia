@@ -13,6 +13,7 @@ use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\TrendingController;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CommentController;
@@ -224,6 +225,12 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
             Route::get('badges',          [BadgeController::class, 'index'])->name('badges.index');
             Route::post('badges/award',   [BadgeController::class, 'award'])->name('badges.award');
             Route::post('badges/revoke',  [BadgeController::class, 'revoke'])->name('badges.revoke');
+
+            Route::post('settings/weekly-report-toggle', function () {
+                $current = Cache::get('setting.weekly_report_enabled', true);
+                Cache::forever('setting.weekly_report_enabled', !$current);
+                return back()->with('success', 'Weekly report ' . (!$current ? 'enabled' : 'disabled') . '.');
+            })->name('settings.weekly-report-toggle');
         });
 
     });
