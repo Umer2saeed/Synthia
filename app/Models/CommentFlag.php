@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class CommentFlag extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'comment_id',
+        'user_id',
+        'reason',
+        'created_at',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
+    public function comment(): BelongsTo
+    {
+        return $this->belongsTo(Comment::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

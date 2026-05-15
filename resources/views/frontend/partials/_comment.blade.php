@@ -35,27 +35,16 @@
             </p>
         </div>
 
-{{--        <div class="flex items-center gap-3 mt-1 px-1">--}}
-{{--            @if(auth()->check() && (--}}
-{{--                $comment->user_id === auth()->id() ||--}}
-{{--                auth()->user()->can('delete comments')--}}
-{{--            ))--}}
-{{--                <button--}}
-{{--                    type="button"--}}
-{{--                    class="delete-comment-btn text-xs--}}
-{{--                           text-red-400 dark:text-red-500--}}
-{{--                           hover:text-red-600 dark:hover:text-red-400--}}
-{{--                           opacity-0 group-hover:opacity-100 transition"--}}
-{{--                    data-comment-id="{{ $comment->id }}">--}}
-{{--                    Delete--}}
-{{--                </button>--}}
-{{--            @endif--}}
-{{--        </div>--}}
-
         <div class="flex items-center justify-between mt-1.5 px-1">
 
-            {{-- Left side: Delete button --}}
+            {{-- Left side: actions --}}
             <div class="flex items-center gap-3">
+
+                {{--
+                | DELETE BUTTON
+                | Uses class "delete-comment-btn" which is bound by JavaScript.
+                | IMPORTANT: The Report button must NOT have this class.
+                --}}
                 @if(auth()->check() && (
                     $comment->user_id === auth()->id() ||
                     auth()->user()->can('delete comments')
@@ -63,14 +52,46 @@
                     <button
                         type="button"
                         class="delete-comment-btn text-xs
-                       text-red-400 dark:text-red-500
-                       hover:text-red-600 dark:hover:text-red-400
-                       opacity-0 group-hover:opacity-100 transition"
+                   text-red-400 dark:text-red-500
+                   hover:text-red-600 dark:hover:text-red-400
+                   opacity-0 group-hover:opacity-100 transition"
                         data-comment-id="{{ $comment->id }}">
                         Delete
                     </button>
                 @endif
+
+                {{--
+                | REPORT BUTTON
+                | Completely separate from Delete.
+                | Does NOT use "delete-comment-btn" class.
+                | Uses a standard form POST — no JavaScript dependency.
+                | event.stopPropagation() prevents the click from bubbling to
+                | any parent element that might have its own click handler.
+                --}}
+                @auth
+                    @if(auth()->id() !== $comment->user_id)
+                        <form
+                            action="{{ route('comments.flag', ['comment' => $comment->id]) }}"
+                            method="POST"
+                            class="inline"
+                            onsubmit="event.stopPropagation();">
+                            @csrf
+                            <button
+                                type="submit"
+                                title="Report this comment"
+                                class="report-comment-btn text-xs
+                           text-gray-400 dark:text-gray-600
+                           hover:text-amber-500 dark:hover:text-amber-400
+                           opacity-0 group-hover:opacity-100 transition"
+                                onclick="event.stopPropagation(); return confirm('Report this comment as inappropriate?');">
+                                🚩 Report
+                            </button>
+                        </form>
+                    @endif
+                @endauth
+
             </div>
+
 
             {{-- Right side: Like button --}}
             <div class="flex items-center">

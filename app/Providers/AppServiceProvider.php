@@ -17,6 +17,7 @@ use App\Services\PostViewService;
 use App\Services\RevisionService;
 use App\Services\SanitizationService;
 use App\Services\SchemaService;
+use App\Services\SpamFilterService;
 use App\Services\TrendingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
@@ -61,6 +62,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TrendingService::class);
 
         $this->app->singleton(MediaService::class);
+
+        $this->app->singleton(SpamFilterService::class);
     }
 
     /**

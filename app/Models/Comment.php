@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\CommentFlag;
 
 class Comment extends Model
 {
@@ -76,5 +77,17 @@ class Comment extends Model
         }
 
         return $this->likes()->where('user_id', $userId)->exists();
+    }
+
+
+
+    public function flags(): HasMany
+    {
+        return $this->hasMany(CommentFlag::class);
+    }
+
+    public function isFlaggedByUser(int $userId): bool
+    {
+        return $this->flags()->where('user_id', $userId)->exists();
     }
 }
