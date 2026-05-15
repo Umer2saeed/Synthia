@@ -55,6 +55,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes'
     ];
 
     /*
@@ -69,6 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'last_login_at'     => 'datetime',
         'password'          => 'hashed',
+        'two_factor_confirmed_at' => 'datetime',
     ];
 
     /*
@@ -265,7 +268,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->orderByPivot('earned_at', 'desc');
     }
 
-    public function userBadges(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function userBadges(): HasMany
     {
         return $this->hasMany(UserBadge::class);
     }
@@ -278,4 +281,51 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->userBadges()->where('badge_id', $badgeId)->exists();
     }
 
+
+    /*
+    | Returns true if 2FA is fully set up and confirmed.
+    */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return !is_null($this->two_factor_confirmed_at);
+    }
+
+    /*
+    | Returns true if 2FA setup has been started but not yet confirmed.
+    */
+    public function hasTwoFactorPending(): bool
+    {
+        return !is_null($this->two_factor_secret) &&
+            is_null($this->two_factor_confirmed_at);
+    }
+
+    /*
+    | Decrypt and return the TOTP secret.
+    */
+    public function decryptedTwoFactorSecret(): ?string
+    {
+        if (!$this->two_factor_secret) return null;
+
+        try {
+            return decrypt($this->two_factor_secret);
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /*
+    | Return recovery codes as a Collection of plain-text codes.
+    | Recovery codes are stored as JSON array of bcrypt hashes.
+    | We store the plain codes separately in the session at generation time.
+    */
+    public function getRecoveryCodes(): array
+    {
+        if (!$this->two_factor_recovery_codes) return [];
+
+        try {
+            return json_decode(decrypt($this->two_factor_recovery_codes), true) ?? [];
+        } catch (\Exception) {
+            return [];
+        }
+    }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorAnalyticsController;
 use App\Http\Controllers\Frontend\AuthorController;
@@ -150,8 +151,20 @@ require __DIR__.'/auth.php';
 // No user can log out explicitly by putting the /logout in the URL
 Route::get('/logout', fn() => redirect('/login'));
 
+// Two-Factor Authentication routes
+Route::middleware(['auth'])->prefix('two-factor')->name('two-factor.')->group(function () {
+    Route::get('/setup',           [TwoFactorController::class, 'setup'])->name('setup');
+    Route::post('/confirm',        [TwoFactorController::class, 'confirm'])->name('confirm');
+    Route::get('/recovery-codes',  [TwoFactorController::class, 'recoveryCodes'])->name('recovery-codes');
+    Route::post('/disable',        [TwoFactorController::class, 'disable'])->name('disable');
+});
+
+// 2FA challenge — no auth required (user is mid-login)
+Route::get('/two-factor-challenge',  [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [TwoFactorController::class, 'verify'])->name('two-factor.verify');
+
 // Admin Panel Routes — must be authenticated
-Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('admin')->name('admin.')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // Our custom middleware
             'admin.access' => \App\Http\Middleware\EnsureUserHasAdminAccess::class,
+
+            'require.2fa' => \App\Http\Middleware\RequireTwoFactor::class,
         ]);
 
     })
