@@ -15,6 +15,11 @@ class RequireTwoFactor
     */
     public function handle(Request $request, Closure $next): Response
     {
+        // DEVELOPMENT ONLY — remove before production
+        if (app()->environment('local')) {
+            return $next($request);
+        }
+
         $user = auth()->user();
 
         if (!$user) {

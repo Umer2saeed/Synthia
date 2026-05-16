@@ -67,9 +67,37 @@ class TwoFactorService
     {
         $secret = $user->decryptedTwoFactorSecret();
         if (!$secret) return false;
-
-        return $this->google2fa->verifyKey($secret, $code, 1); // 1 = ±30s window
+        return $this->google2fa->verifyKey($secret, $code, 4);
     }
+
+//    public function verify(User $user, string $code): bool
+//    {
+//
+////        dd('coming here');
+//        $secret = $user->decryptedTwoFactorSecret();
+//
+//        if (!$secret) {
+//            \Log::error('2FA verify: secret is null for user ' . $user->id);
+//            return false;
+//        }
+//
+//        /*
+//        | Log the server timestamp so you can compare with your phone.
+//        | If the times are far apart, clock skew is the cause.
+//        */
+//        \Log::info('2FA verify attempt', [
+//            'user_id'    => $user->id,
+//            'code'       => $code,
+//            'server_time'=> now()->toDateTimeString(),
+//            'timestamp'  => now()->timestamp,
+//        ]);
+//
+//        $result = $this->google2fa->verifyKey($secret, $code, 4);
+//
+//        \Log::info('2FA verify result: ' . ($result ? 'PASS' : 'FAIL'));
+//
+//        return $result;
+//    }
 
     /*
     | Confirm 2FA setup after the user verifies their first code.
