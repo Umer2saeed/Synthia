@@ -17,15 +17,14 @@ class SendWeeklyReport extends Command
 
     public function handle(): int
     {
-        /*
-        | Check if weekly reports are enabled.
-        | We store the toggle in cache for now (D6 settings will replace this).
-        | Default is enabled.
-        */
-        $enabled = Cache::get('setting.weekly_report_enabled', true);
+//        $enabled = Cache::get('setting.weekly_report_enabled', true);
+
+        // Read from settings table instead of cache
+        $settings = app(\App\Services\SettingsService::class);
+        $enabled  = $settings->bool('weekly_report_enabled', true);
 
         if (!$enabled && !$this->option('force')) {
-            $this->info('Weekly report is disabled. Use --force to send anyway.');
+            $this->info('Weekly report is disabled in Settings. Use --force to override.');
             return Command::SUCCESS;
         }
 
@@ -82,6 +81,10 @@ class SendWeeklyReport extends Command
 
     private function resolveAdminEmail(): ?string
     {
+        // Settings take priority over .env
+        $settingsEmail = app(\App\Services\SettingsService::class)->get('weekly_report_email');
+        if ($settingsEmail) return $settingsEmail;
+
         /*
         | Priority:
         | 1. MAIL_ADMIN_ADDRESS env variable (explicit config)

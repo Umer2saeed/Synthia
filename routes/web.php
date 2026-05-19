@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorAnalyticsController;
@@ -263,6 +264,11 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
                 Cache::forever('setting.weekly_report_enabled', !$current);
                 return back()->with('success', 'Weekly report ' . (!$current ? 'enabled' : 'disabled') . '.');
             })->name('settings.weekly-report-toggle');
+
+            Route::get('settings',              [SettingsController::class, 'index'])->name('settings.index');
+            Route::post('settings',             [SettingsController::class, 'update'])->name('settings.update');
+            Route::delete('settings/image',     [SettingsController::class, 'removeImage'])->name('settings.remove-image');
+
         });
 
     });

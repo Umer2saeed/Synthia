@@ -369,6 +369,12 @@ class BlogController extends Controller
     */
     public function storeComment(StoreCommentRequest $request): JsonResponse
     {
+        $commentsOpen = app(\App\Services\SettingsService::class)->bool('comments_open', true);
+
+        if (!$commentsOpen) {
+            return back()->with('error', 'Comments are currently closed.');
+        }
+
         $post = Post::published()->findOrFail($request->validated()['post_id']);
 
         $isSpam = app(SpamFilterService::class)->isSpam($request->validated()['content']);
@@ -439,9 +445,12 @@ class BlogController extends Controller
         if ($isSpam) return 'pending';
 
         $user = auth()->user();
-
         if ($user->hasAnyRole(['admin', 'editor'])) return 'approved';
 
-        return 'pending';
+        // Read from settings instead of hardcoded value
+        $autoApprove = app(\App\Services\SettingsService::class)->bool('comments_auto_approve', false);
+
+
+        return $autoApprove ? 'approved' : 'pending';
     }
 }

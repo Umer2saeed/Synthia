@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        $middleware->append(\App\Http\Middleware\MaintenanceMode::class);
         /*
        |----------------------------------------------------------------------
        | Register Spatie Permission Middleware Aliases
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.access' => \App\Http\Middleware\EnsureUserHasAdminAccess::class,
 
             'require.2fa' => \App\Http\Middleware\RequireTwoFactor::class,
+            'maintenance.mode' => \App\Http\Middleware\MaintenanceMode::class,
         ]);
 
     })

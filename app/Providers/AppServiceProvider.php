@@ -17,6 +17,7 @@ use App\Services\PostViewService;
 use App\Services\RevisionService;
 use App\Services\SanitizationService;
 use App\Services\SchemaService;
+use App\Services\SettingsService;
 use App\Services\SpamFilterService;
 use App\Services\TrendingService;
 use App\Services\TwoFactorService;
@@ -67,6 +68,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SpamFilterService::class);
 
         $this->app->singleton(TwoFactorService::class);
+
+        $this->app->singleton(SettingsService::class);
     }
 
     /**
