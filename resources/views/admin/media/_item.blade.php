@@ -35,24 +35,21 @@
 
         {{-- Delete button — top-right, visible on hover --}}
         <div class="absolute top-2 right-2 z-20
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-            <form action="{{ route('admin.media.destroy', $item) }}"
-                  method="POST"
-                  onsubmit="event.stopPropagation(); return confirm('Delete {{ addslashes($item->original_name) }}?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit"
-                        class="w-7 h-7 rounded-full
-                               bg-red-500 hover:bg-red-600
-                               flex items-center justify-center
-                               shadow-lg transition">
-                    <svg class="w-3.5 h-3.5 text-white" fill="none"
-                         stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </form>
+            opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <button type="button"
+                    class="single-delete-btn w-7 h-7 rounded-full
+                   bg-red-500 hover:bg-red-600
+                   flex items-center justify-center
+                   shadow-lg transition"
+                    data-id="{{ $item->id }}"
+                    data-name="{{ $item->original_name }}"
+                    data-url="{{ route('admin.media.destroy', $item) }}">
+                <svg class="w-3.5 h-3.5 text-white pointer-events-none"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
 
         {{-- Thumbnail image --}}

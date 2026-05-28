@@ -166,15 +166,15 @@
                                class="rounded border-gray-300 dark:border-gray-600
                                           text-indigo-600 focus:ring-indigo-400">
                     </th>
-                    <th class="px-5 py-4">Cover</th>
-                    <th class="px-5 py-4">Title</th>
-                    <th class="px-5 py-4">Category</th>
-                    <th class="px-5 py-4">Status</th>
-                    <th class="px-5 py-4">Featured</th>
-                    <th class="px-5 py-4">Views</th>
-                    <th class="px-5 py-4">Author</th>
-                    <th class="px-5 py-4">Created</th>
-                    <th class="px-5 py-4 text-right">Actions</th>
+                    <th class="px-3 py-2">Cover</th>
+                    <th class="px-3 py-2">Title</th>
+                    <th class="px-3 py-2">Category</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2">Featured</th>
+                    <th class="px-3 py-2">Views</th>
+                    <th class="px-3 py-2">Author</th>
+                    <th class="px-3 py-2">Created</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
                 </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -182,7 +182,7 @@
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition align-middle">
 
                         {{-- Row checkbox --}}
-                        <td class="px-4 py-3">
+                        <td class="px-3 py-2">
                             <input type="checkbox"
                                    name="post_ids[]"
                                    value="{{ $post->id }}"
@@ -191,11 +191,7 @@
                                               text-indigo-600 focus:ring-indigo-400">
                         </td>
 
-                        <td class="px-5 py-3">
-{{--                            <img src="{{ $post->cover_image_url }}"--}}
-{{--                                 alt="{{ $post->title }}"--}}
-{{--                                 class="w-12 h-12 object-cover rounded-lg--}}
-{{--                                            border border-gray-200 dark:border-gray-700">--}}
+                        <td class="px-3 py-2">
                             <img src="{{ $post->cover_image_url }}"
                                  alt="{{ $post->title }}"
                                  data-single-lightbox="{{ $post->cover_image_url }}"
@@ -205,7 +201,7 @@
                                     cursor-pointer hover:opacity-80 transition-opacity">
                         </td>
 
-                        <td class="px-5 py-3">
+                        <td class="px-3 py-2">
                             <div class="font-medium text-gray-800 dark:text-gray-200">
                                 {{ Str::limit($post->title, 45) }}
                             </div>
@@ -214,11 +210,11 @@
                             </div>
                         </td>
 
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-400">
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
                             {{ $post->category->name ?? '—' }}
                         </td>
 
-                        <td class="px-5 py-3">
+                        <td class="px-3 py-2">
                             @php
                                 $badgeColor = match($post->status) {
                                     'published' => 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400',
@@ -238,7 +234,7 @@
                             </div>
                         </td>
 
-                        <td class="px-5 py-3">
+                        <td class="px-3 py-2">
                             @if($post->is_featured)
                                 <span class="text-yellow-500 text-lg">★</span>
                             @else
@@ -246,19 +242,19 @@
                             @endif
                         </td>
 
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-400 text-xs">
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
                             {{ $post->formatted_views }}
                         </td>
 
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-400">
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
                             {{ $post->user->name ?? '—' }}
                         </td>
 
-                        <td class="px-5 py-3 text-gray-400 dark:text-gray-500 text-xs">
+                        <td class="px-3 py-2 text-gray-400 dark:text-gray-500 text-xs">
                             {{ $post->created_at->format('d M Y') }}
                         </td>
 
-                        <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
+                        <td class="px-3 py-2 text-right space-x-1 whitespace-nowrap">
                             <a href="{{ route('admin.posts.show', $post) }}"
                                class="text-gray-500 dark:text-gray-400
                                           hover:text-gray-800 dark:hover:text-white

@@ -19,6 +19,7 @@ use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\TrendingController;
+use App\Http\Middleware\MaintenanceMode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
@@ -50,19 +51,18 @@ use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 | Public Frontend Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/',                         [HomeController::class,         'index'])->name('home');
-Route::get('/blog',                     [BlogController::class,         'index'])->name('blog');
-Route::get('/blog/{slug}',              [BlogController::class,         'show'])->name('blog.post');
-Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
-Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
-Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
-Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
-
-/*
-| Public Series Routes
-*/
-Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
-Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
+// Public frontend routes — protected by MaintenanceMode
+Route::middleware([MaintenanceMode::class])->group(function () {
+    Route::get('/',                         [HomeController::class,         'index'])->name('home');
+    Route::get('/blog',                     [BlogController::class,         'index'])->name('blog');
+    Route::get('/blog/{slug}',              [BlogController::class,         'show'])->name('blog.post');
+    Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
+    Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
+    Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
+    Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
+    Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
+    Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
+});
 /*
 |--------------------------------------------------------------------------
 | RSS Feed Routes
@@ -172,7 +172,7 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
 
         // Admin Profile Routes — prefixed to avoid collision with frontend profile
         Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/profile',  [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile',  [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('/password',   [ProfileController::class, 'updatePassword'])->name('profile.password');
         Route::delete('/avatar',  [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
@@ -199,12 +199,8 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
 
             // Activity Log
             Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
-            Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
-
             // Bulk Post Actions
             Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
-            Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
-
             // Draft Autosave
             Route::post('/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
             Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');

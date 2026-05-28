@@ -169,6 +169,16 @@
 
         </form>
 
+        {{--
+        | Single image delete form — lives OUTSIDE the bulk form.
+        | Nested forms are invalid HTML and break both forms silently.
+        | JavaScript populates the action URL before submitting.
+        --}}
+        <form id="single-delete-form" method="POST" class="hidden">
+            @csrf
+            @method('DELETE')
+        </form>
+
         @if($media->hasPages())
             <div class="mt-6">{{ $media->links() }}</div>
         @endif
@@ -517,6 +527,27 @@
                     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             }
 
+        });
+
+
+        // ── SINGLE IMAGE DELETE ────────────────────────────────────────────────────
+        /*
+        | We use one shared hidden form instead of one form per image.
+        | This avoids nested forms (invalid HTML) which break bulk delete.
+        | On click: set the action URL, confirm, then submit.
+        */
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.single-delete-btn');
+            if (!btn) return;
+
+            const name = btn.dataset.name;
+            const url  = btn.dataset.url;
+
+            if (!confirm('Delete ' + name + '? This cannot be undone.')) return;
+
+            const form   = document.getElementById('single-delete-form');
+            form.action  = url;
+            form.submit();
         });
     </script>
 

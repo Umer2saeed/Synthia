@@ -24,10 +24,7 @@
                 Profile Information
             </h3>
 
-            <form action="{{ route('admin.profile.update') }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  class="space-y-5">
+            <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                 @csrf
                 @method('PUT')
 
