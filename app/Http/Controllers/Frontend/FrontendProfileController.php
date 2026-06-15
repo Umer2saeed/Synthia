@@ -107,7 +107,6 @@ class FrontendProfileController extends Controller
     public function removeAvatar()
     {
         $user = auth()->user();
-
         $user->deleteAvatar();
         $user->update(['avatar' => null]);
 

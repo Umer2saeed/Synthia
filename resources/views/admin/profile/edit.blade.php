@@ -26,7 +26,7 @@
 
             <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                 @csrf
-                @method('PUT')
+                @method('PATCH')
 
                 <div class="flex items-center gap-5">
                     <img src="{{ $user->avatar_url }}"
@@ -55,17 +55,24 @@
                         <p class="text-red-500 text-xs">{{ $message }}</p>
                         @enderror
                         @if($user->avatar)
-                            <form action="{{ route('admin.profile.avatar.remove') }}"
-                                  method="POST" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="text-xs text-red-500 dark:text-red-400 hover:underline"
-                                        onclick="return confirm('Remove your avatar?')">
-                                    Remove photo
-                                </button>
-                            </form>
+                            <button type="button"
+                                    id="remove-avatar-btn"
+                                    class="text-xs text-red-500 dark:text-red-400 hover:underline">
+                                Remove photo
+                            </button>
                         @endif
+{{--                        @if($user->avatar)--}}
+{{--                            <form action="{{ route('admin.profile.avatar.remove') }}"--}}
+{{--                                  method="POST" class="inline">--}}
+{{--                                @csrf--}}
+{{--                                @method('DELETE')--}}
+{{--                                <button type="submit"--}}
+{{--                                        class="text-xs text-red-500 dark:text-red-400 hover:underline"--}}
+{{--                                        onclick="return confirm('Remove your avatar?')">--}}
+{{--                                    Remove photo--}}
+{{--                                </button>--}}
+{{--                            </form>--}}
+{{--                        @endif--}}
                     </div>
                 </div>
 
@@ -344,6 +351,19 @@
             </div>
         </div>
 
+            {{--
+            | Remove avatar form — MUST be outside the profile update form.
+            | Nested forms are invalid HTML and break both forms silently.
+            --}}
+            @if($user->avatar)
+                <form id="remove-avatar-form"
+                      action="{{ route('admin.profile.avatar.remove') }}"
+                      method="POST"
+                      class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            @endif
     </div>
 
     <script>
@@ -360,5 +380,17 @@
         bioTextarea.addEventListener('input', function () {
             bioCount.textContent = this.value.length;
         });
+
+
+        const removeAvatarBtn  = document.getElementById('remove-avatar-btn');
+        const removeAvatarForm = document.getElementById('remove-avatar-form');
+
+        if (removeAvatarBtn && removeAvatarForm) {
+            removeAvatarBtn.addEventListener('click', function () {
+                if (confirm('Remove your avatar?')) {
+                    removeAvatarForm.submit();
+                }
+            });
+        }
     </script>
 </x-app-layout>

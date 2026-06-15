@@ -169,10 +169,9 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
         // Admin Profile Routes — prefixed to avoid collision with frontend profile
         Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::put('/profile',  [ProfileController::class, 'update'])->name('profile.update');
+        Route::patch('/profile',  [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('/password',   [ProfileController::class, 'updatePassword'])->name('profile.password');
         Route::delete('/avatar',  [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
@@ -267,4 +266,4 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
 
         });
 
-    });
+});

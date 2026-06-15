@@ -141,7 +141,7 @@
                                         default  => 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
                                     };
                                 @endphp
-                                <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $color }}">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium mr-1 {{ $color }}">
                                         {{ ucfirst($role->name) }}
                                     </span>
                             @empty
