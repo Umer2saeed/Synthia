@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorAnalyticsController;
@@ -145,6 +146,9 @@ Route::middleware(['auth', 'verified'])->prefix('reading-lists')->name('reading-
     Route::get('/user-lists',                          [ReadingListController::class, 'getUserLists'])->name('user-lists');
 
 });
+
+Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 // Auth Routes (Breeze handles login/register/etc.)
 require __DIR__.'/auth.php';
