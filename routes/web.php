@@ -205,14 +205,9 @@ Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('
             // Bulk Post Actions
             Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
             // Draft Autosave
-            Route::post('/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
-            Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
-            /*
-             | POST not PUT — JavaScript fetch sends POST.
-             | No /admin prefix — already applied by the group prefix('admin').
-             */
             Route::post('/posts/autosave',   [AutosaveController::class, 'save'])->name('posts.autosave');
             Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+
 
             Route::resource('series', AdminSeriesController::class);
 
