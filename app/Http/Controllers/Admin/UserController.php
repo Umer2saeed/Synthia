@@ -103,6 +103,10 @@ class UserController extends Controller
             unset($validated['avatar']);
         }
 
+        if (empty($validated['username'])) {
+            $validated['username'] = null;
+        }
+
         $user->update($validated);
 
         // Dispatch avatar optimization

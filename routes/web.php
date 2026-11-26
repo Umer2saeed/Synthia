@@ -6,6 +6,9 @@ use App\Http\Controllers\Admin\BadgeController;
 use App\Http\Controllers\Admin\BulkPostController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Frontend\AuthorAnalyticsController;
 use App\Http\Controllers\Frontend\AuthorController;
@@ -17,6 +20,7 @@ use App\Http\Controllers\Frontend\FollowController;
 use App\Http\Controllers\Frontend\FrontendProfileController;
 use App\Http\Controllers\Frontend\ReactionController;
 use App\Http\Controllers\Frontend\TrendingController;
+use App\Http\Middleware\MaintenanceMode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
@@ -48,19 +52,18 @@ use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 | Public Frontend Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/',                         [HomeController::class,         'index'])->name('home');
-Route::get('/blog',                     [BlogController::class,         'index'])->name('blog');
-Route::get('/blog/{slug}',              [BlogController::class,         'show'])->name('blog.post');
-Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
-Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
-Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
-Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
-
-/*
-| Public Series Routes
-*/
-Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
-Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
+// Public frontend routes — protected by MaintenanceMode
+Route::middleware([MaintenanceMode::class])->group(function () {
+    Route::get('/',                         [HomeController::class,         'index'])->name('home');
+    Route::get('/blog',                     [BlogController::class,         'index'])->name('blog');
+    Route::get('/blog/{slug}',              [BlogController::class,         'show'])->name('blog.post');
+    Route::get('/category/{slug}',          [CategoryPageController::class, 'show'])->name('blog.category');
+    Route::get('/tag/{slug}',               [TagPageController::class,      'show'])->name('blog.tag');
+    Route::get('/authors/{username}',  [AuthorController::class,       'show'])->name('author.profile');
+    Route::get('/trending', [TrendingController::class, 'index'])->name('trending');
+    Route::get('/series',        [SeriesController::class, 'index'])->name('series.index');
+    Route::get('/series/{slug}', [SeriesController::class, 'show'])->name('series.show');
+});
 /*
 |--------------------------------------------------------------------------
 | RSS Feed Routes
@@ -144,18 +147,32 @@ Route::middleware(['auth', 'verified'])->prefix('reading-lists')->name('reading-
 
 });
 
+Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
 // Auth Routes (Breeze handles login/register/etc.)
 require __DIR__.'/auth.php';
 
 // No user can log out explicitly by putting the /logout in the URL
 Route::get('/logout', fn() => redirect('/login'));
 
+// Two-Factor Authentication routes
+Route::middleware(['auth'])->prefix('two-factor')->name('two-factor.')->group(function () {
+    Route::get('/setup',           [TwoFactorController::class, 'setup'])->name('setup');
+    Route::post('/confirm',        [TwoFactorController::class, 'confirm'])->name('confirm');
+    Route::get('/recovery-codes',  [TwoFactorController::class, 'recoveryCodes'])->name('recovery-codes');
+    Route::post('/disable',        [TwoFactorController::class, 'disable'])->name('disable');
+});
+
+// 2FA challenge — no auth required (user is mid-login)
+Route::get('/two-factor-challenge',  [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [TwoFactorController::class, 'verify'])->name('two-factor.verify');
+
 // Admin Panel Routes — must be authenticated
-Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'admin.access', 'require.2fa'])->prefix('admin')->name('admin.')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
         // Admin Profile Routes — prefixed to avoid collision with frontend profile
         Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile',  [ProfileController::class, 'update'])->name('profile.update');
@@ -185,21 +202,12 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
 
             // Activity Log
             Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
-            Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
-
             // Bulk Post Actions
             Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
-            Route::post('/posts/bulk', [BulkPostController::class, 'apply'])->name('posts.bulk');
-
             // Draft Autosave
-            Route::post('/posts/autosave',  [AutosaveController::class, 'save'])->name('posts.autosave');
-            Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
-            /*
-             | POST not PUT — JavaScript fetch sends POST.
-             | No /admin prefix — already applied by the group prefix('admin').
-             */
             Route::post('/posts/autosave',   [AutosaveController::class, 'save'])->name('posts.autosave');
             Route::delete('/posts/autosave', [AutosaveController::class, 'discard'])->name('posts.autosave.discard');
+
 
             Route::resource('series', AdminSeriesController::class);
 
@@ -250,6 +258,11 @@ Route::middleware(['auth', 'verified', 'admin.access'])->prefix('admin')->name('
                 Cache::forever('setting.weekly_report_enabled', !$current);
                 return back()->with('success', 'Weekly report ' . (!$current ? 'enabled' : 'disabled') . '.');
             })->name('settings.weekly-report-toggle');
+
+            Route::get('settings',              [SettingsController::class, 'index'])->name('settings.index');
+            Route::post('settings',             [SettingsController::class, 'update'])->name('settings.update');
+            Route::delete('settings/image',     [SettingsController::class, 'removeImage'])->name('settings.remove-image');
+
         });
 
-    });
+});

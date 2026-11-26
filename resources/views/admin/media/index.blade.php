@@ -169,6 +169,16 @@
 
         </form>
 
+        {{--
+        | Single image delete form — lives OUTSIDE the bulk form.
+        | Nested forms are invalid HTML and break both forms silently.
+        | JavaScript populates the action URL before submitting.
+        --}}
+        <form id="single-delete-form" method="POST" class="hidden">
+            @csrf
+            @method('DELETE')
+        </form>
+
         @if($media->hasPages())
             <div class="mt-6">{{ $media->links() }}</div>
         @endif
@@ -440,7 +450,9 @@
                 if (!grid) return;
 
                 const wrapper = document.createElement('div');
+                // CRITICAL: include 'group' class so hover state works
                 wrapper.className = 'group relative rounded-xl overflow-hidden cursor-pointer select-none';
+
                 wrapper.innerHTML = `
         <div class="relative aspect-square overflow-hidden rounded-xl
                     bg-gray-100 dark:bg-gray-700
@@ -453,7 +465,28 @@
                           text-indigo-600 focus:ring-indigo-400
                           opacity-0 group-hover:opacity-100 transition-opacity"
                    onclick="event.stopPropagation()">
-            <img src="${media.url}"
+
+            {{-- DELETE BUTTON: must be in the HTML with group-hover classes --}}
+                <div class="absolute top-2 right-2 z-20
+                            opacity-0 group-hover:opacity-100 transition-opacity">
+                    <form action="{{ route('admin.media.destroy', '__ID__') }}"
+                      method="POST"
+                      onsubmit="event.stopPropagation(); return confirm('Delete this image?');">
+                    @csrf
+                @method('DELETE')
+                <button type="submit"
+                        class="w-7 h-7 rounded-full
+                               bg-red-500 hover:bg-red-600
+                               flex items-center justify-center
+                               shadow-lg transition">
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <img src="${media.url}"
                  alt="${escapeHtml(media.original_name)}"
                  data-lb-url="${media.url}"
                  data-lb-name="${escapeHtml(media.original_name)}"
@@ -462,19 +495,19 @@
                  class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                  loading="lazy">
         </div>
+
         <div class="pt-1.5 pb-1 px-0.5">
             <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                 ${escapeHtml(media.original_name)}
             </p>
             <p class="text-xs text-gray-400 dark:text-gray-500">
-                ${media.formatted_size}
+                ${media.formatted_size}${media.width ? ' · ' + media.width + '×' + media.height : ''}
             </p>
         </div>
     `;
 
                 grid.prepend(wrapper);
                 rebindCheckboxes();
-                // Rebind lightbox clicks to include the new item
                 bindThumbnailClicks();
             }
 
@@ -517,6 +550,27 @@
                     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             }
 
+        });
+
+
+        // ── SINGLE IMAGE DELETE ────────────────────────────────────────────────────
+        /*
+        | We use one shared hidden form instead of one form per image.
+        | This avoids nested forms (invalid HTML) which break bulk delete.
+        | On click: set the action URL, confirm, then submit.
+        */
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.single-delete-btn');
+            if (!btn) return;
+
+            const name = btn.dataset.name;
+            const url  = btn.dataset.url;
+
+            if (!confirm('Delete ' + name + '? This cannot be undone.')) return;
+
+            const form   = document.getElementById('single-delete-form');
+            form.action  = url;
+            form.submit();
         });
     </script>
 

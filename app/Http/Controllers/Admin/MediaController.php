@@ -85,6 +85,13 @@ class MediaController extends Controller
     */
     public function bulkDestroy(Request $request): RedirectResponse
     {
+        // TEMPORARY DEBUG — remove after fixing
+        \Log::info('bulkDestroy hit', [
+            'ids'    => $request->input('ids'),
+            'all'    => $request->all(),
+            'method' => $request->method(),
+        ]);
+
         $request->validate([
             'ids'   => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:media,id'],

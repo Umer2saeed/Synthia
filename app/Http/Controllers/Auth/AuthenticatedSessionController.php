@@ -22,24 +22,51 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
+//    public function store(LoginRequest $request): RedirectResponse
+//    {
+//        $request->authenticate();
+//        $request->session()->regenerate();
+//
+//        // Record last login timestamp
+//        auth()->user()->update(['last_login_at' => now()]);
+//
+//        if (auth()->user()->hasRole('reader')) {
+//            return redirect()
+//                ->route('home')
+//                ->with('success', 'Welcome back, ' . auth()->user()->name . '!');
+//        }
+//
+//        return redirect()->intended(route('admin.dashboard', absolute: false));
+//    }
+
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
+
+        $user = auth()->user();
+
+        if ($user->hasTwoFactorEnabled()) {
+            $userId = $user->id;
+
+            auth()->logout();
+
+            $request->session()->put('2fa_user_id', $userId);
+
+            return redirect()->route('two-factor.challenge');
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | NO 2FA — complete login normally.
+        |
+        | Everything below is your original code, unchanged.
+        |----------------------------------------------------------------------
+        */
         $request->session()->regenerate();
 
         // Record last login timestamp
         auth()->user()->update(['last_login_at' => now()]);
 
-        /*
-   |----------------------------------------------------------------------
-   | Role-based redirect after login
-   |----------------------------------------------------------------------
-   | Readers have no admin panel access, so we send them straight to the
-   | public frontend instead of letting the middleware catch and redirect
-   | them from /dashboard — cleaner UX, one less redirect.
-   |
-   | All other roles go to the dashboard as normal.
-   */
         if (auth()->user()->hasRole('reader')) {
             return redirect()
                 ->route('home')

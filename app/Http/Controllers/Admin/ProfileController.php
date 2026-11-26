@@ -27,6 +27,7 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request)
     {
         $user = auth()->user();
+
         $validated = $request->validated();
 
         if ($request->hasFile('avatar')) {

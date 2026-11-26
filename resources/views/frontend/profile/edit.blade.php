@@ -84,17 +84,11 @@
 
                         {{-- Remove avatar option --}}
                         @if($user->avatar)
-                            <form action="{{ route('frontend.profile.avatar.remove') }}"
-                                  method="POST" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="text-xs text-red-500 hover:text-red-700
-                                           hover:underline transition-colors"
-                                        onclick="return confirm('Remove your avatar?')">
-                                    Remove photo
-                                </button>
-                            </form>
+                            <button type="button"
+                                    id="remove-avatar-btn"
+                                    class="text-xs text-red-500 dark:text-red-400 hover:underline">
+                                Remove photo
+                            </button>
                         @endif
                     </div>
                 </div>
@@ -179,6 +173,16 @@
                     </button>
                 </div>
             </form>
+
+            @if($user->avatar)
+                <form id="remove-avatar-form"
+                      action="{{ route('frontend.profile.avatar.remove') }}"
+                      method="POST"
+                      class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            @endif
         </div>
 
         {{-- =============================================
@@ -316,6 +320,19 @@
         bioTextarea?.addEventListener('input', function () {
             bioCount.textContent = this.value.length;
         });
+
+
+        const removeAvatarBtn  = document.getElementById('remove-avatar-btn');
+        const removeAvatarForm = document.getElementById('remove-avatar-form');
+
+        if (removeAvatarBtn && removeAvatarForm) {
+            removeAvatarBtn.addEventListener('click', function () {
+                if (confirm('Remove your avatar?')) {
+                    removeAvatarForm.submit();
+                }
+            });
+        }
     </script>
+
 
 @endsection
