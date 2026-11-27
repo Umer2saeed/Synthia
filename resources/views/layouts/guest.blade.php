@@ -661,5 +661,6 @@
     });
 </script>
 
+<x-toast :validation="false" />
 </body>
 </html>

@@ -170,5 +170,6 @@
     }
 </script>
 
+<x-toast />
 </body>
 </html>
