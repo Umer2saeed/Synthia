@@ -27,6 +27,14 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-900
+                        border border-red-300 dark:border-red-700
+                        text-red-800 dark:text-red-300 rounded-xl text-sm">
+                {{ session('error') }}
+            </div>
+        @endif
+
         {{-- Tabs --}}
         <div x-data="{ tab: 'pending' }" class="space-y-5">
 
@@ -83,12 +91,28 @@
                     </div>
                 @else
 
-                    {{-- Bulk action form --}}
+                    {{--
+                    | Bulk form: EMPTY and hidden on purpose.
+                    |
+                    | The old version wrapped the whole list in this form, and every row
+                    | had its own Approve/Reject form inside it. HTML does not allow a
+                    | form inside a form: the browser dropped the inner <form> tags but
+                    | kept their hidden _method=PATCH field, so every Approve click was
+                    | sent as PATCH /admin/moderation/bulk  ->  405 error.
+                    |
+                    | Now the checkboxes and the "action" input belong to this form
+                    | through the form="pending-bulk-form" attribute, so nothing is nested.
+                    --}}
                     <form id="pending-bulk-form"
                           action="{{ route('admin.moderation.bulk') }}"
-                          method="POST">
+                          method="POST"
+                          class="hidden">
                         @csrf
+                    </form>
 
+                    <div>
+
+                        {{-- Toolbar --}}
                         <div class="flex items-center gap-3 mb-4
                                     px-4 py-3 bg-white dark:bg-gray-800
                                     border border-gray-200 dark:border-gray-700
@@ -104,7 +128,8 @@
                             </label>
 
                             <div class="ml-auto flex items-center gap-2">
-                                <input type="hidden" name="action" id="pending-bulk-action" value="">
+                                <input type="hidden" name="action" id="pending-bulk-action"
+                                       value="" form="pending-bulk-form">
                                 <button type="button"
                                         onclick="submitBulk('pending-bulk-form', 'pending-bulk-action', 'approve')"
                                         class="px-3 py-1.5 text-xs font-medium
@@ -121,11 +146,12 @@
                                                text-red-700 dark:text-red-400
                                                rounded-lg hover:bg-red-200 dark:hover:bg-red-800
                                                transition">
-                                    ✗ Reject Selected
+                                    ✗ Remove Selected
                                 </button>
                             </div>
                         </div>
 
+                        {{-- Comment cards --}}
                         <div class="space-y-3">
                             @foreach($pendingComments as $comment)
                                 <div class="bg-white dark:bg-gray-800
@@ -140,6 +166,7 @@
                                         <input type="checkbox"
                                                name="ids[]"
                                                value="{{ $comment->id }}"
+                                               form="pending-bulk-form"
                                                class="pending-checkbox w-4 h-4 rounded
                                                       border-gray-300 dark:border-gray-600
                                                       text-indigo-600 focus:ring-indigo-400">
@@ -170,7 +197,7 @@
                                             <span class="px-2 py-0.5 text-xs rounded-full
                                                          bg-red-100 dark:bg-red-900
                                                          text-red-600 dark:text-red-400">
-                                                🚩 {{ $comment->flags_count }} flag{{ $comment->flags_count > 1 ? 's' : '' }}
+                                                🚩 {{ $comment->flags_count }} {{ Str::plural('flag', $comment->flags_count) }}
                                             </span>
                                         @endif
 
@@ -179,19 +206,20 @@
                                     {{-- Comment content --}}
                                     <div class="px-5 py-4">
                                         <p class="text-sm text-gray-700 dark:text-gray-300
-                                                   leading-relaxed">
+                                                   leading-relaxed whitespace-pre-line">
                                             {{ $comment->content }}
                                         </p>
                                     </div>
 
-                                    {{-- Actions --}}
+                                    {{-- Actions: each button has its OWN form, none are nested --}}
                                     <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700
                                                 flex items-center gap-3
                                                 bg-gray-50 dark:bg-gray-900/40">
 
                                         <form action="{{ route('admin.moderation.approve', $comment) }}"
                                               method="POST">
-                                            @csrf @method('PATCH')
+                                            @csrf
+                                            @method('PATCH')
                                             <button type="submit"
                                                     class="px-4 py-1.5 text-xs font-medium
                                                            bg-green-600 hover:bg-green-700
@@ -201,22 +229,24 @@
                                         </form>
 
                                         <form action="{{ route('admin.moderation.reject', $comment) }}"
-                                              method="POST">
-                                            @csrf @method('PATCH')
+                                              method="POST"
+                                              onsubmit="return confirm('Remove this comment permanently?')">
+                                            @csrf
+                                            @method('PATCH')
                                             <button type="submit"
                                                     class="px-4 py-1.5 text-xs font-medium
                                                            bg-red-600 hover:bg-red-700
                                                            text-white rounded-lg transition">
-                                                ✗ Reject
+                                                ✗ Remove
                                             </button>
                                         </form>
 
-                                        <a href="{{ route('blog.post', $comment->post->slug) }}#comment-{{ $comment->id }}"
+                                        <a href="{{ route('blog.post', $comment->post->slug) }}"
                                            target="_blank"
                                            class="ml-auto text-xs text-gray-400 dark:text-gray-500
                                                   hover:text-indigo-500 dark:hover:text-indigo-400
                                                   transition">
-                                            View in context →
+                                            View post →
                                         </a>
 
                                     </div>
@@ -224,7 +254,7 @@
                             @endforeach
                         </div>
 
-                    </form>
+                    </div>
 
                     <div class="mt-4">{{ $pendingComments->links() }}</div>
 
@@ -242,6 +272,9 @@
                         <span class="text-4xl block mb-3">🏳️</span>
                         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">
                             No flagged comments
+                        </p>
+                        <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                            Comments that readers report will appear here.
                         </p>
                     </div>
                 @else
@@ -284,21 +317,21 @@
                                 </div>
 
                                 <div class="px-5 py-4">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                    <p class="text-sm text-gray-700 dark:text-gray-300
+                                               leading-relaxed whitespace-pre-line">
                                         {{ $comment->content }}
                                     </p>
 
-                                    {{-- Show flag reasons --}}
+                                    {{-- Who reported it, and why --}}
                                     @if($comment->flags->isNotEmpty())
                                         <div class="mt-3 space-y-1">
                                             @foreach($comment->flags->take(3) as $flag)
-                                                @if($flag->reason)
-                                                    <p class="text-xs text-gray-400 dark:text-gray-500
-                                                               italic">
-                                                        "{{ $flag->reason }}"
-                                                        — {{ $flag->user->name ?? 'Anonymous' }}
-                                                    </p>
-                                                @endif
+                                                <p class="text-xs text-gray-400 dark:text-gray-500 italic">
+                                                    Reported by {{ $flag->user->name ?? 'a user' }}
+                                                    @if($flag->reason)
+                                                        — "{{ $flag->reason }}"
+                                                    @endif
+                                                </p>
                                             @endforeach
                                         </div>
                                     @endif
@@ -307,10 +340,11 @@
                                 <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700
                                             flex items-center gap-3 bg-gray-50 dark:bg-gray-900/40">
 
-                                    {{-- Dismiss flags — keep comment --}}
+                                    {{-- Dismiss flags: the comment stays published --}}
                                     <form action="{{ route('admin.moderation.dismiss', $comment) }}"
                                           method="POST">
-                                        @csrf @method('PATCH')
+                                        @csrf
+                                        @method('PATCH')
                                         <button type="submit"
                                                 class="px-4 py-1.5 text-xs font-medium
                                                        bg-gray-200 dark:bg-gray-700
@@ -321,10 +355,12 @@
                                         </button>
                                     </form>
 
-                                    {{-- Reject comment entirely --}}
+                                    {{-- Remove the comment entirely --}}
                                     <form action="{{ route('admin.moderation.reject', $comment) }}"
-                                          method="POST">
-                                        @csrf @method('PATCH')
+                                          method="POST"
+                                          onsubmit="return confirm('Remove this comment permanently?')">
+                                        @csrf
+                                        @method('PATCH')
                                         <button type="submit"
                                                 class="px-4 py-1.5 text-xs font-medium
                                                        bg-red-600 hover:bg-red-700
@@ -332,6 +368,14 @@
                                             Remove Comment
                                         </button>
                                     </form>
+
+                                    <a href="{{ route('blog.post', $comment->post->slug) }}"
+                                       target="_blank"
+                                       class="ml-auto text-xs text-gray-400 dark:text-gray-500
+                                              hover:text-indigo-500 dark:hover:text-indigo-400
+                                              transition">
+                                        View post →
+                                    </a>
 
                                 </div>
                             </div>
@@ -347,20 +391,27 @@
     </div>
 
     <script>
-        // Select all for pending tab
+        // "Select All" checkbox for the Pending tab
         document.getElementById('pending-select-all')?.addEventListener('change', function () {
             document.querySelectorAll('.pending-checkbox').forEach(cb => {
                 cb.checked = this.checked;
             });
         });
 
+        // Bulk approve / remove. The form is found by id and submitted;
+        // the browser includes every field linked with form="pending-bulk-form".
         function submitBulk(formId, actionInputId, action) {
             const checked = document.querySelectorAll('.pending-checkbox:checked').length;
+
             if (!checked) {
                 alert('Please select at least one comment.');
                 return;
             }
-            if (!confirm(`${action === 'approve' ? 'Approve' : 'Reject'} ${checked} comment${checked > 1 ? 's' : ''}?`)) return;
+
+            const verb = action === 'approve' ? 'Approve' : 'Remove';
+
+            if (!confirm(`${verb} ${checked} comment${checked > 1 ? 's' : ''}?`)) return;
+
             document.getElementById(actionInputId).value = action;
             document.getElementById(formId).submit();
         }

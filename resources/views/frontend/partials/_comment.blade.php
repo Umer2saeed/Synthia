@@ -60,33 +60,17 @@
                     </button>
                 @endif
 
-                {{--
-                | REPORT BUTTON
-                | Completely separate from Delete.
-                | Does NOT use "delete-comment-btn" class.
-                | Uses a standard form POST — no JavaScript dependency.
-                | event.stopPropagation() prevents the click from bubbling to
-                | any parent element that might have its own click handler.
-                --}}
+                {{-- REPORT BUTTON: AJAX, no form, no delete-comment-btn class --}}
                 @auth
-                    @if(auth()->id() !== $comment->user_id)
-                        <form
-                            action="{{ route('comments.flag', ['comment' => $comment->id]) }}"
-                            method="POST"
-                            class="inline"
-                            onsubmit="event.stopPropagation();">
-                            @csrf
-                            <button
-                                type="submit"
-                                title="Report this comment"
-                                class="report-comment-btn text-xs
-                           text-gray-400 dark:text-gray-600
-                           hover:text-amber-500 dark:hover:text-amber-400
-                           opacity-0 group-hover:opacity-100 transition"
-                                onclick="event.stopPropagation(); return confirm('Report this comment as inappropriate?');">
-                                🚩 Report
-                            </button>
-                        </form>
+                    @if(auth()->id() !== $comment->user_id && $comment->is_approved)
+                        @php $alreadyReported = $comment->isFlaggedByUser(auth()->id()); @endphp
+                        <button type="button"
+                                class="report-comment-btn text-xs transition text-gray-400 dark:text-gray-500
+                       {{ $alreadyReported ? 'cursor-default' : 'hover:text-amber-500 dark:hover:text-amber-400 opacity-0 group-hover:opacity-100' }}"
+                                data-comment-id="{{ $comment->id }}"
+                            {{ $alreadyReported ? 'disabled' : '' }}>
+                            {{ $alreadyReported ? '✓ Reported' : '🚩 Report' }}
+                        </button>
                     @endif
                 @endauth
 

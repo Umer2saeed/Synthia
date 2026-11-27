@@ -369,47 +369,40 @@ class BlogController extends Controller
     */
     public function storeComment(StoreCommentRequest $request): JsonResponse
     {
-        $commentsOpen = app(\App\Services\SettingsService::class)->bool('comments_open', true);
-
-        if (!$commentsOpen) {
-            return back()->with('error', 'Comments are currently closed.');
+        if (! app(\App\Services\SettingsService::class)->bool('comments_open', true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Comments are currently closed.',
+            ], 403);
         }
 
-        $post = Post::published()->findOrFail($request->validated()['post_id']);
+        $post    = Post::published()->findOrFail($request->validated()['post_id']);
+        $content = $request->validated()['content'];
 
-        $isSpam = app(SpamFilterService::class)->isSpam($request->validated()['content']);
-
+        $isApproved = $this->resolveApproval($content);
 
         $comment = Comment::create([
             'user_id'     => auth()->id(),
             'post_id'     => $post->id,
-            'content'     => $request->validated()['content'],
-            'is_approved' => true,
-            /*
-            | Spam comments are auto-held as pending.
-            | Trusted users (editors, admins) get auto-approved.
-            | Everyone else is pending by default.
-            */
-            'status'  => $this->resolveCommentStatus($request->validated()['content'], $isSpam),
+            'content'     => $content,
+            'is_approved' => $isApproved,
         ]);
-
-        $message = $comment->status === 'approved'
-            ? 'Comment posted.'
-            : 'Your comment is awaiting moderation.';
 
         $comment->load('user');
 
-        SendNewCommentNotificationJob::dispatch($comment);
+        // Only notify the author about comments that are actually visible.
+        if ($isApproved) {
+            SendNewCommentNotificationJob::dispatch($comment);
+        }
 
         Cache::forget('author.analytics.' . $post->user_id);
 
-        $html = view('frontend.partials._comment', compact('comment'))->render();
-
         return response()->json([
             'success' => true,
-            'html'    => $html,
+            'html'    => view('frontend.partials._comment', compact('comment'))->render(),
             'count'   => $post->comments()->approved()->count(),
-            'message' => $message,
+            'pending' => ! $isApproved,
+            'message' => $isApproved ? 'Comment posted.' : 'Your comment is awaiting moderation.',
         ]);
     }
 
@@ -440,17 +433,19 @@ class BlogController extends Controller
         ]);
     }
 
-    private function resolveCommentStatus(string $content, bool $isSpam): string
+    private function resolveApproval(string $content): bool
     {
-        if ($isSpam) return 'pending';
+        // Spam always waits for review.
+        if (app(SpamFilterService::class)->isSpam($content)) {
+            return false;
+        }
 
-        $user = auth()->user();
-        if ($user->hasAnyRole(['admin', 'editor'])) return 'approved';
+        // Admins and editors are trusted.
+        if (auth()->user()->hasAnyRole(['admin', 'editor'])) {
+            return true;
+        }
 
-        // Read from settings instead of hardcoded value
-        $autoApprove = app(\App\Services\SettingsService::class)->bool('comments_auto_approve', false);
-
-
-        return $autoApprove ? 'approved' : 'pending';
+        // Everyone else follows "Auto-approve comments" in /admin/settings.
+        return app(\App\Services\SettingsService::class)->bool('comments_auto_approve', false);
     }
 }

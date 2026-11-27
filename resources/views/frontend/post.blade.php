@@ -1650,4 +1650,40 @@
         })();
     </script>
 
+    <script>
+        document.addEventListener('click', async function (e) {
+            const btn = e.target.closest('.report-comment-btn');
+            if (!btn || btn.disabled) return;
+            if (!confirm('Report this comment as inappropriate?')) return;
+
+            // The Task 2 toast system will define window.synthiaToast. Until then this falls back to alert().
+            const notify = (msg, type) => window.synthiaToast ? window.synthiaToast(msg, type) : alert(msg);
+
+            btn.disabled = true;
+            try {
+                const res = await fetch('/comments/' + btn.dataset.commentId + '/flag', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.success) {
+                    btn.textContent = '✓ Reported';
+                    btn.classList.remove('opacity-0');
+                    notify(data.message, 'success');
+                } else {
+                    btn.disabled = false;
+                    notify(data.message || 'Could not report this comment.', 'error');
+                }
+            } catch (err) {
+                btn.disabled = false;
+                notify('Network error. Please try again.', 'error');
+            }
+        });
+    </script>
+
 @endsection

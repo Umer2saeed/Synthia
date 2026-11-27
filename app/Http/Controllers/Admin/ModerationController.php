@@ -12,28 +12,23 @@ class ModerationController extends Controller
 {
     public function index()
     {
-        /*
-        | Use the same scope names your Comment model already defines.
-        | Check app/Models/Comment.php for scopeApproved() and scopePending().
-        | If your comment status column is named differently, adjust here.
-        */
-        $pendingComments = Comment::where('is_approved', 'pending')
+        // Pending = waiting for a moderator (is_approved = false)
+        $pendingComments = Comment::where('is_approved', false)
             ->with(['user', 'post:id,title,slug'])
             ->withCount('flags')
             ->orderByDesc('created_at')
             ->paginate(20, ['*'], 'pending_page');
 
-        $flaggedComments = Comment::where('is_approved', 'approved')
+        // Flagged = public comments that readers have reported
+        $flaggedComments = Comment::where('is_approved', true)
             ->whereHas('flags')
             ->with(['user', 'post:id,title,slug', 'flags.user'])
             ->withCount('flags')
             ->orderByDesc('flags_count')
             ->paginate(20, ['*'], 'flagged_page');
 
-        $pendingCount = Comment::where('is_approved', 'pending')->count();
-        $flaggedCount = Comment::where('is_approved', 'approved')
-            ->whereHas('flags')
-            ->count();
+        $pendingCount = Comment::where('is_approved', false)->count();
+        $flaggedCount = Comment::where('is_approved', true)->whereHas('flags')->count();
 
         return view('admin.moderation.index', compact(
             'pendingComments',
@@ -45,41 +40,47 @@ class ModerationController extends Controller
 
     public function approve(Comment $comment): RedirectResponse
     {
-        $comment->update(['is_approved' => 'approved']);
+        $comment->update(['is_approved' => true]);
+
+        // The moderator has reviewed it, so old reports no longer apply.
+        $comment->flags()->delete();
 
         return back()->with('success', 'Comment approved.');
     }
 
+    // A true/false column has no "rejected" state, so rejecting removes the comment.
     public function reject(Comment $comment): RedirectResponse
     {
-        $comment->update(['is_approved' => 'rejected']);
+        $comment->delete();
 
-        return back()->with('success', 'Comment rejected.');
+        return back()->with('success', 'Comment removed.');
     }
 
     public function dismiss(Comment $comment): RedirectResponse
     {
-        // Dismiss all flags — comment stays approved
         $comment->flags()->delete();
 
-        return back()->with('success', 'Flags dismissed.');
+        return back()->with('success', 'Flags dismissed. The comment stays published.');
     }
 
-    /*
-    | Bulk approve or reject multiple comments at once.
-    */
     public function bulk(Request $request): RedirectResponse
     {
         $request->validate([
-            'action'  => ['required', 'in:approve,reject'],
-            'ids'     => ['required', 'array', 'min:1'],
-            'ids.*'   => ['integer', 'exists:comments,id'],
+            'action' => ['required', 'in:approve,reject'],
+            'ids'    => ['required', 'array', 'min:1'],
+            'ids.*'  => ['integer', 'exists:comments,id'],
         ]);
 
-        $newStatus = $request->action === 'approve' ? 'approved' : 'rejected';
+        if ($request->action === 'approve') {
+            CommentFlag::whereIn('comment_id', $request->ids)->delete();
 
-        $count = Comment::whereIn('id', $request->ids)->update(['status' => $newStatus]);
+            $count = Comment::whereIn('id', $request->ids)->update(['is_approved' => true]);
 
-        return back()->with('success', "{$count} " . \Str::plural('comment', $count) . " {$newStatus}.");
+            return back()->with('success', "{$count} comment(s) approved.");
+        }
+
+        $count = Comment::whereIn('id', $request->ids)->delete();
+
+        return back()->with('success', "{$count} comment(s) removed.");
     }
 }
