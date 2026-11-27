@@ -5,12 +5,6 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-12">
 
 {{--         Flash Messages--}}
-        @if(session('success'))
-            <div class="mb-6 px-4 py-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800
-                    text-green-700 dark:text-green-400 text-sm rounded-xl">
-                {{ session('success') }}
-            </div>
-        @endif
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 

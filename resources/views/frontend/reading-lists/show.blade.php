@@ -128,7 +128,7 @@
                                     setTimeout(() => article.remove(), 300);
                                 }
                             } catch (err) {
-                                alert('Could not remove post. Please try again.');
+                                toast.error('Could not remove post. Please try again.');
                             }
                         });
                     });

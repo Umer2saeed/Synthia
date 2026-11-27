@@ -1,29 +1,31 @@
 {{--
-| Global toast notifications
+| Global toast notifications. Included in each layout as <x-toast />.
 |
-| Already included in the admin and frontend layouts as <x-toast />.
-|
-| FROM A CONTROLLER (works exactly as before):
+| FROM A CONTROLLER:
 |     return back()->with('success', 'Post created.');      // success | error | warning | info
-|
-|     // richer toast with a title and an action button:
 |     return back()->with('toast', [
-|         'type'    => 'success',
-|         'title'   => 'Post deleted',
-|         'message' => 'The post was moved to trash.',
-|         'action'  => ['label' => 'View trash', 'href' => route('admin.posts.trash')],
+|         'type' => 'success', 'title' => 'Post deleted', 'message' => 'Moved to trash.',
+|         'action' => ['label' => 'View trash', 'href' => route('admin.posts.trash')],
 |     ]);
 |
-| FROM JAVASCRIPT (any page, any module):
-|     toast.success('Saved.');            toast.error('Could not save.');
-|     toast.warning('Careful.');          toast.info('FYI.');
+| FROM JAVASCRIPT:
+|     toast.success('Saved.');   toast.error('Failed.');   toast.warning('Careful.');   toast.info('FYI.');
 |     toast.show({ type: 'success', title: 'Done', message: '...', duration: 8000,
 |                  action: { label: 'Undo', onClick: () => undo() } });
-|     window.showToast('Saved.', 'success');   // old API, still works
+|
+|     const id = toast.loading('Deleting…');                 // spinner, stays until updated
+|     toast.update(id, { type: 'success', message: 'Deleted.' });
+|
+|     toast.promise(fetch(url, opts).then(r => r.json()), {  // does all of the above for you
+|         loading: 'Saving…',
+|         success: (data) => data.message || 'Saved.',
+|         error:   'Could not save.',
+|     });
+|
+|     window.showToast('Saved.', 'success');                 // old API, still works
 |
 | Duration: success 4s, info 5s, warning 6.5s, error stays until closed.
-| Close with X, swipe sideways, or press Esc. Hover pauses the timer.
-|
+| Close with X, swipe sideways, or press Esc. Hovering pauses the timer.
 | <x-toast :validation="false" /> turns off the automatic "Please check the form" toast.
 --}}
 @props(['validation' => true])
@@ -73,16 +75,19 @@
     .synt-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--rgb)); }
     .synt-card.is-dragging { cursor: grabbing; transition: none; }
     .synt-card.synt-bump { animation: synt-bump .3s ease; }
+    .synt-card.synt-swap { animation: synt-swap .3s ease backwards; }
     .synt-item.is-leaving .synt-card { transition: transform .28s cubic-bezier(.4,0,1,1), opacity .24s ease-in; }
 
     .synt-success { --rgb: 16,185,129; }
     .synt-error   { --rgb: 239,68,68; }
     .synt-warning { --rgb: 245,158,11; }
     .synt-info    { --rgb: 99,102,241; }
+    .synt-loading { --rgb: 99,102,241; }
 
     .synt-icon { flex: none; width: 28px; height: 28px; border-radius: 9999px; display: grid; place-items: center;
         background: rgba(var(--rgb), .14); color: rgb(var(--rgb)); }
     .synt-icon svg { width: 16px; height: 16px; }
+    .synt-spin { animation: synt-spin .8s linear infinite; }
 
     .synt-body { flex: 1; min-width: 0; }
     .synt-title { margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3; color: #111827; }
@@ -117,6 +122,8 @@
     @keyframes synt-in   { from { opacity: 0; transform: translateX(28px) scale(.95); } to { opacity: 1; transform: none; } }
     @keyframes synt-bar  { from { transform: scaleX(1); } to { transform: scaleX(0); } }
     @keyframes synt-bump { 0% { transform: scale(1); } 40% { transform: scale(1.035); } 100% { transform: scale(1); } }
+    @keyframes synt-swap { from { opacity: .4; transform: scale(.97); } to { opacity: 1; transform: none; } }
+    @keyframes synt-spin { to { transform: rotate(360deg); } }
     @media (max-width: 639px) { @keyframes synt-in { from { opacity: 0; transform: translateY(-16px) scale(.96); } to { opacity: 1; transform: none; } } }
     @media (prefers-reduced-motion: reduce) {
         .synt-card, .synt-item { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -133,13 +140,15 @@
                 success: { duration: 4000, title: 'Success' },
                 info:    { duration: 5000, title: 'Heads up' },
                 warning: { duration: 6500, title: 'Warning' },
-                error:   { duration: 0,    title: 'Something went wrong' }   // 0 = stays until closed
+                error:   { duration: 0,    title: 'Something went wrong' },   // 0 = stays until closed
+                loading: { duration: 0,    title: '' }
             };
             var ICONS = {
                 success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>',
                 error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
                 warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9L2.4 17.5A2 2 0 004.1 20.5h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
-                info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>'
+                info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>',
+                loading: '<svg class="synt-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M21 12a9 9 0 00-9-9"/></svg>'
             };
             var CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
             var counter = 0, pending = [];
@@ -153,12 +162,13 @@
                 return node;
             }
 
+            function findItem(id) {
+                var host = region();
+                return host ? Array.prototype.filter.call(host.children, function (c) { return c._id === id; })[0] : null;
+            }
+
             function dismiss(target, dir) {
-                var item = target;
-                if (typeof target === 'number') {
-                    var host = region();
-                    item = host && Array.prototype.filter.call(host.children, function (c) { return c._id === target; })[0];
-                }
+                var item = (typeof target === 'number') ? findItem(target) : target;
                 if (!item || item._leaving) return;
                 item._leaving = true;
 
@@ -206,21 +216,77 @@
                 card.addEventListener('pointercancel', end);
             }
 
-            function show(o) {
+            function normalise(o) {
                 o = o || {};
                 var type = DEFAULTS[o.type] ? o.type : 'info';
-                var message = (o.message === undefined || o.message === null) ? '' : String(o.message);
-                var title = (o.title === false || o.title === '') ? '' : (o.title || DEFAULTS[type].title);
-                if (!message && !title) return null;
+                return {
+                    type: type,
+                    message: (o.message === undefined || o.message === null) ? '' : String(o.message),
+                    title: (o.title === false || o.title === '') ? '' : (o.title || DEFAULTS[type].title),
+                    duration: (typeof o.duration === 'number') ? o.duration : DEFAULTS[type].duration,
+                    action: o.action
+                };
+            }
+
+            // Builds the visible card for a toast. Used by show() and update().
+            function render(item, n, swapped) {
+                var card = el('div', 'synt-card synt-' + n.type + (swapped ? ' synt-swap' : ''));
+                card.setAttribute('role', (n.type === 'error' || n.type === 'warning') ? 'alert' : 'status');
+
+                var icon = el('span', 'synt-icon'); icon.innerHTML = ICONS[n.type];
+                var body = el('div', 'synt-body');
+                if (n.title)   body.appendChild(el('p', 'synt-title', n.title));
+                if (n.message) body.appendChild(el('p', 'synt-msg', n.message));
+
+                if (n.action && n.action.label) {
+                    var isLink = !!n.action.href && !/^\s*javascript:/i.test(n.action.href);
+                    var act = el(isLink ? 'a' : 'button', 'synt-action', n.action.label);
+                    if (isLink) act.href = n.action.href; else act.type = 'button';
+                    act.addEventListener('click', function () {
+                        if (typeof n.action.onClick === 'function') n.action.onClick();
+                        dismiss(item, 1);
+                    });
+                    body.appendChild(act);
+                }
+
+                var badge = el('span', 'synt-count'); badge.hidden = true;
+
+                var close = el('button', 'synt-close');
+                close.type = 'button';
+                close.setAttribute('aria-label', 'Dismiss notification');
+                close.innerHTML = CLOSE;
+                close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(item, 1); });
+
+                card.appendChild(icon); card.appendChild(body); card.appendChild(badge); card.appendChild(close);
+
+                item._bar = null;
+                if (n.duration > 0) {
+                    var bar = el('span', 'synt-bar');
+                    card.style.setProperty('--dur', n.duration + 'ms');
+                    bar.addEventListener('animationend', function (e) { if (e.animationName === 'synt-bar') dismiss(item, 1); });
+                    card.appendChild(bar);
+                    item._bar = bar;
+                }
+
+                item._badge = badge;
+                item._count = 1;
+                item._key = n.type + '|' + n.title + '|' + n.message;
+
+                enableSwipe(card, item);
+                return card;
+            }
+
+            function show(o) {
+                var n = normalise(o);
+                if (!n.message && !n.title) return null;
 
                 var host = region();
                 if (!host) { pending.push(o); return null; }
 
-                var duration = (typeof o.duration === 'number') ? o.duration : DEFAULTS[type].duration;
-                var key = type + '|' + title + '|' + message;
-
                 // Same toast already on screen: count it and restart its timer instead of stacking copies.
-                var dup = Array.prototype.filter.call(host.children, function (c) { return c._key === key && !c._leaving; })[0];
+                var key = n.type + '|' + n.title + '|' + n.message;
+                var dup = n.type === 'loading' ? null :
+                    Array.prototype.filter.call(host.children, function (c) { return c._key === key && !c._leaving; })[0];
                 if (dup) {
                     dup._count++;
                     dup._badge.textContent = '×' + dup._count;
@@ -231,53 +297,38 @@
                 }
 
                 var item = el('div', 'synt-item');
-                item._key = key; item._count = 1; item._id = ++counter;
-
-                var card = el('div', 'synt-card synt-' + type);
-                card.setAttribute('role', (type === 'error' || type === 'warning') ? 'alert' : 'status');
-
-                var icon = el('span', 'synt-icon'); icon.innerHTML = ICONS[type];
-                var body = el('div', 'synt-body');
-                if (title)   body.appendChild(el('p', 'synt-title', title));
-                if (message) body.appendChild(el('p', 'synt-msg', message));
-
-                if (o.action && o.action.label) {
-                    var isLink = !!o.action.href && !/^\s*javascript:/i.test(o.action.href);
-                    var act = el(isLink ? 'a' : 'button', 'synt-action', o.action.label);
-                    if (isLink) act.href = o.action.href; else act.type = 'button';
-                    act.addEventListener('click', function () {
-                        if (typeof o.action.onClick === 'function') o.action.onClick();
-                        dismiss(item, 1);
-                    });
-                    body.appendChild(act);
-                }
-
-                var badge = el('span', 'synt-count'); badge.hidden = true; item._badge = badge;
-
-                var close = el('button', 'synt-close');
-                close.type = 'button';
-                close.setAttribute('aria-label', 'Dismiss notification');
-                close.innerHTML = CLOSE;
-                close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(item, 1); });
-
-                card.appendChild(icon); card.appendChild(body); card.appendChild(badge); card.appendChild(close);
-
-                if (duration > 0) {
-                    var bar = el('span', 'synt-bar');
-                    card.style.setProperty('--dur', duration + 'ms');
-                    bar.addEventListener('animationend', function (e) { if (e.animationName === 'synt-bar') dismiss(item, 1); });
-                    card.appendChild(bar);
-                    item._bar = bar;
-                }
-
-                item.appendChild(card);
+                item._id = ++counter;
+                item.appendChild(render(item, n, false));
                 host.appendChild(item);
-                enableSwipe(card, item);
 
                 var live = Array.prototype.filter.call(host.children, function (c) { return !c._leaving; });
                 while (live.length > MAX_VISIBLE) dismiss(live.shift(), 1);
 
                 return item._id;
+            }
+
+            // Change a toast that is already on screen (for example loading -> success).
+            function update(id, o) {
+                var item = findItem(id);
+                if (!item || item._leaving) return show(o);   // the user closed it: show the result as a new toast
+                item.removeChild(item.firstChild);
+                item.appendChild(render(item, normalise(o), true));
+                return id;
+            }
+
+            function promise(source, msgs) {
+                msgs = msgs || {};
+                var id = show({ type: 'loading', message: msgs.loading || 'Working…' });
+                var run;
+                try { run = (typeof source === 'function') ? source() : source; } catch (e) { run = Promise.reject(e); }
+
+                return Promise.resolve(run).then(function (result) {
+                    update(id, { type: 'success', message: typeof msgs.success === 'function' ? msgs.success(result) : (msgs.success || 'Done.') });
+                    return result;
+                }, function (err) {
+                    update(id, { type: 'error', message: typeof msgs.error === 'function' ? msgs.error(err) : (msgs.error || 'Something went wrong.') });
+                    throw err;
+                });
             }
 
             window.toast = {
@@ -286,12 +337,15 @@
                 error:   function (m, o) { return show(Object.assign({ type: 'error',   message: m }, o)); },
                 warning: function (m, o) { return show(Object.assign({ type: 'warning', message: m }, o)); },
                 info:    function (m, o) { return show(Object.assign({ type: 'info',    message: m }, o)); },
+                loading: function (m, o) { return show(Object.assign({ type: 'loading', message: m }, o)); },
+                update:  update,
+                promise: promise,
                 dismiss: dismiss,
                 clear:   function () { var h = region(); if (h) Array.prototype.slice.call(h.children).forEach(function (c) { dismiss(c, 1); }); }
             };
 
             // Old API used by your existing scripts: showToast(message, type, duration)
-            window.showToast   = function (message, type, duration) { return show({ type: type || 'success', message: message, duration: duration }); };
+            window.showToast    = function (message, type, duration) { return show({ type: type || 'success', message: message, duration: duration }); };
             window.synthiaToast = window.showToast;
 
             document.addEventListener('keydown', function (e) { if (e.key === 'Escape') window.toast.clear(); });

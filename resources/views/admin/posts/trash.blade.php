@@ -11,21 +11,7 @@
     <div class="py-8 max-w-7xl mx-auto px-4">
 
         {{-- Flash Messages --}}
-        @if(session('success'))
-            <div class="mb-5 px-4 py-3 bg-green-50 dark:bg-green-900
-                        border border-green-200 dark:border-green-700
-                        text-green-800 dark:text-green-300 text-sm rounded-lg">
-                {{ session('success') }}
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="mb-5 px-4 py-3 bg-red-50 dark:bg-red-950
-                        border border-red-200 dark:border-red-800
-                        text-red-700 dark:text-red-400 text-sm rounded-lg">
-                {{ session('error') }}
-            </div>
-        @endif
 
         {{-- Info Banner --}}
         <div class="mb-5 px-4 py-3 bg-amber-50 dark:bg-amber-950

@@ -5,19 +5,7 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12 space-y-6">
 
         {{-- Flash Messages --}}
-        @if(session('success'))
-            <div class="px-4 py-3 bg-green-50 dark:bg-green-950 border border-green-200
-                    dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-xl">
-                {{ session('success') }}
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200
-                    dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl">
-                {{ session('error') }}
-            </div>
-        @endif
 
         {{-- Page Header --}}
         <div class="flex items-center justify-between">

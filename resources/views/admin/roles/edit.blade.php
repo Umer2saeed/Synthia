@@ -16,13 +16,6 @@
 
     <div class="py-8 max-w-3xl mx-auto px-4">
 
-        @if(session('error'))
-            <div class="mb-4 px-4 py-3 bg-red-50 dark:bg-red-950
-                        border border-red-200 dark:border-red-800
-                        text-red-700 dark:text-red-400 text-sm rounded-lg">
-                {{ session('error') }}
-            </div>
-        @endif
 
         <div class="bg-white dark:bg-gray-800
                     shadow rounded-xl

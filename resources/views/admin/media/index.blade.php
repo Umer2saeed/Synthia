@@ -19,13 +19,6 @@
 
     <div class="py-8 max-w-7xl mx-auto px-4">
 
-        @if(session('success'))
-            <div class="mb-5 px-4 py-3 bg-green-100 dark:bg-green-900
-                        border border-green-300 dark:border-green-700
-                        text-green-800 dark:text-green-300 rounded-xl text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
 
         {{-- =============================================
              TOOLBAR

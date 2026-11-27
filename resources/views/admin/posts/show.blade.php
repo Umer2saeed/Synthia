@@ -381,10 +381,10 @@
                                 }
                             }, 300);
                         } else {
-                            alert(data.message || 'Could not delete comment.');
+                            toast.error(data.message || 'Could not delete comment.');
                         }
                     } catch (err) {
-                        alert('Network error. Please try again.');
+                        toast.error('Network error. Please try again.');
                     }
                 });
             }

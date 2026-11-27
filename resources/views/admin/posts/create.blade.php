@@ -638,7 +638,7 @@
                             'window.tiptapEditor is not defined. ' +
                             'Add "window.tiptapEditor = editor" in your editor.js after the Editor is created.'
                         );
-                        alert('Editor not ready. Please ensure you are on the post create/edit page.');
+                        toast.warning('Editor not ready. Please ensure you are on the post create/edit page.');
                         return;
                     }
 

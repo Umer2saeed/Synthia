@@ -10,13 +10,6 @@
 
     <div class="py-10 max-w-2xl mx-auto px-4">
 
-        @if(session('warning'))
-            <div class="mb-6 px-4 py-3 bg-amber-50 dark:bg-amber-950
-                        border border-amber-200 dark:border-amber-800
-                        text-amber-800 dark:text-amber-300 text-sm rounded-xl">
-                ⚠ {{ session('warning') }}
-            </div>
-        @endif
 
         <div class="bg-white dark:bg-gray-800
                     rounded-2xl border border-gray-200 dark:border-gray-700
