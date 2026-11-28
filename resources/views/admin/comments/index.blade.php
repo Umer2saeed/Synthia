@@ -14,13 +14,6 @@
 
     <div class="py-8 max-w-6xl mx-auto px-4">
 
-        @if(session('success'))
-            <div class="mb-4 px-4 py-3 bg-green-50 dark:bg-green-900
-                        border border-green-200 dark:border-green-700
-                        text-green-800 dark:text-green-300 text-sm rounded-lg">
-                {{ session('success') }}
-            </div>
-        @endif
 
         {{-- Quick stats --}}
         <div class="mb-4 flex gap-3 text-xs items-center flex-wrap">
@@ -235,7 +228,7 @@
                             );
                         }
                     } catch (err) {
-                        alert('Could not update status. Try again.');
+                        toast.error('Could not update status. Try again.');
                     }
                 });
             });
@@ -243,27 +236,40 @@
             document.querySelectorAll('.admin-delete-btn').forEach(btn => {
                 btn.addEventListener('click', async function () {
                     if (!confirm('Permanently delete this comment?')) return;
+
                     const commentId = this.dataset.commentId;
                     const row       = document.getElementById(`comment-row-${commentId}`);
+
+                    // Spinner toast while the request is running
+                    const loadingId = toast.loading('Deleting comment…');
+
                     try {
                         const response = await fetch(`/comments/${commentId}`, {
                             method:  'DELETE',
                             headers: {
                                 'X-CSRF-TOKEN':     csrfToken,
                                 'X-Requested-With': 'XMLHttpRequest',
+                                'Accept':           'application/json',
                                 'Content-Type':     'application/json',
                             },
                         });
-                        const data = await response.json();
-                        if (data.success) {
-                            row.style.transition = 'opacity 0.3s ease';
-                            row.style.opacity    = '0';
-                            setTimeout(() => row.remove(), 300);
+                        const data = await response.json().catch(() => ({}));
+
+                        if (response.ok && data.success) {
+                            // The spinner turns into a green success toast
+                            toast.update(loadingId, { type: 'success', message: data.message || 'Comment deleted.' });
+
+                            if (row) {
+                                row.style.transition = 'opacity 0.3s ease';
+                                row.style.opacity    = '0';
+                                setTimeout(() => row.remove(), 300);
+                            }
                         } else {
-                            alert(data.message || 'Could not delete.');
+                            // The spinner turns into a red error toast that stays until closed
+                            toast.update(loadingId, { type: 'error', message: data.message || 'Could not delete the comment.' });
                         }
                     } catch (err) {
-                        alert('Network error. Try again.');
+                        toast.update(loadingId, { type: 'error', message: 'Network error. Please try again.' });
                     }
                 });
             });

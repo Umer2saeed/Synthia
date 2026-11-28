@@ -16,13 +16,6 @@
         </div>
 
         {{-- Flash messages --}}
-        @if(session('success'))
-            <div class="mb-6 px-4 py-3 bg-green-50 dark:bg-green-950 border
-                    border-green-200 dark:border-green-800
-                    text-green-700 dark:text-green-400 text-sm rounded-xl">
-                {{ session('success') }}
-            </div>
-        @endif
 
         @if($bookmarks->isEmpty())
             {{--

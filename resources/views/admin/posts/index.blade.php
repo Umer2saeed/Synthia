@@ -12,13 +12,6 @@
 
     <div class="py-8 max-w-7xl mx-auto px-4">
 
-        @if(session('success'))
-            <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-900
-                        border border-green-300 dark:border-green-700
-                        text-green-800 dark:text-green-300 rounded-lg text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
 
         {{-- Filters --}}
         <form method="GET" action="{{ route('admin.posts.index') }}"
@@ -416,12 +409,12 @@
                 const checked = document.querySelectorAll('.post-checkbox:checked').length;
 
                 if (!action) {
-                    alert('Please select an action from the dropdown.');
+                    toast.warning('Please select an action from the dropdown.');
                     return;
                 }
 
                 if (checked === 0) {
-                    alert('Please select at least one post.');
+                    toast.warning('Please select at least one post.');
                     return;
                 }
 

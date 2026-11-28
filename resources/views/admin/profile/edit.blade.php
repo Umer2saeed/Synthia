@@ -6,13 +6,6 @@
 
     <div class="py-8 max-w-3xl mx-auto px-4 space-y-6">
 
-        @if(session('success'))
-            <div class="px-4 py-3 bg-green-50 dark:bg-green-900
-                        border border-green-200 dark:border-green-700
-                        text-green-800 dark:text-green-300 text-sm rounded-lg">
-                {{ session('success') }}
-            </div>
-        @endif
 
         {{-- Profile Information --}}
         <div class="bg-white dark:bg-gray-800

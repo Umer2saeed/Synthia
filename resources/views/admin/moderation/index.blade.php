@@ -19,21 +19,7 @@
 
     <div class="py-8 max-w-5xl mx-auto px-4">
 
-        @if(session('success'))
-            <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-900
-                        border border-green-300 dark:border-green-700
-                        text-green-800 dark:text-green-300 rounded-xl text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-900
-                        border border-red-300 dark:border-red-700
-                        text-red-800 dark:text-red-300 rounded-xl text-sm">
-                {{ session('error') }}
-            </div>
-        @endif
 
         {{-- Tabs --}}
         <div x-data="{ tab: 'pending' }" class="space-y-5">
@@ -404,7 +390,7 @@
             const checked = document.querySelectorAll('.pending-checkbox:checked').length;
 
             if (!checked) {
-                alert('Please select at least one comment.');
+                toast.warning('Please select at least one comment.');
                 return;
             }
 
