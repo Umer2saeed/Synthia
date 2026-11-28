@@ -18,36 +18,31 @@ class TwoFactorService
     }
 
     /*
-    | Generate a new secret key and store it (unconfirmed) on the user.
-    | Returns the plain-text secret for QR code generation.
+    | Create a new secret and store it (unconfirmed) on the user.
+    |
+    | forceFill()->save() instead of update(): update() only writes columns listed in
+    | User::$fillable, and the two_factor_* columns are (correctly) not fillable.
+    | That is exactly why the secret was never saved before.
     */
     public function generateSecret(User $user): string
     {
-        $secret = $this->google2fa->generateSecretKey();
+        $secret = $this->google2fa->generateSecretKey(32);
 
-        $user->update([
-            'two_factor_secret'       => encrypt($secret),
-            'two_factor_confirmed_at' => null, // reset confirmation
-        ]);
+        $user->forceFill([
+            'two_factor_secret'         => encrypt($secret),
+            'two_factor_confirmed_at'   => null,
+            'two_factor_recovery_codes' => null,
+        ])->save();
 
         return $secret;
     }
 
-    /*
-    | Build the QR code URL for the authenticator app.
-    */
     public function qrCodeUrl(User $user, string $secret): string
     {
-        return $this->google2fa->getQRCodeUrl(
-            config('app.name'),
-            $user->email,
-            $secret
-        );
+        return $this->google2fa->getQRCodeUrl(config('app.name'), $user->email, $secret);
     }
 
-    /*
-    | Generate a base64 PNG QR code image for embedding in HTML.
-    */
+    /* Base64 SVG, used as <img src="data:image/svg+xml;base64,..."> */
     public function qrCodeSvg(string $url): string
     {
         $renderer = new \BaconQrCode\Renderer\ImageRenderer(
@@ -55,119 +50,88 @@ class TwoFactorService
             new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
         );
 
-        $writer = new \BaconQrCode\Writer($renderer);
-        return base64_encode($writer->writeString($url));
+        return base64_encode((new \BaconQrCode\Writer($renderer))->writeString($url));
     }
 
-    /*
-    | Verify a TOTP code against the user's secret.
-    | Returns true if the code is valid within the allowed window.
-    */
     public function verify(User $user, string $code): bool
     {
         $secret = $user->decryptedTwoFactorSecret();
-        if (!$secret) return false;
-        return $this->google2fa->verifyKey($secret, $code, 4);
-    }
 
-//    public function verify(User $user, string $code): bool
-//    {
-//
-////        dd('coming here');
-//        $secret = $user->decryptedTwoFactorSecret();
-//
-//        if (!$secret) {
-//            \Log::error('2FA verify: secret is null for user ' . $user->id);
-//            return false;
-//        }
-//
-//        /*
-//        | Log the server timestamp so you can compare with your phone.
-//        | If the times are far apart, clock skew is the cause.
-//        */
-//        \Log::info('2FA verify attempt', [
-//            'user_id'    => $user->id,
-//            'code'       => $code,
-//            'server_time'=> now()->toDateTimeString(),
-//            'timestamp'  => now()->timestamp,
-//        ]);
-//
-//        $result = $this->google2fa->verifyKey($secret, $code, 4);
-//
-//        \Log::info('2FA verify result: ' . ($result ? 'PASS' : 'FAIL'));
-//
-//        return $result;
-//    }
-
-    /*
-    | Confirm 2FA setup after the user verifies their first code.
-    | Also generates and stores recovery codes.
-    | Returns the plain-text recovery codes (shown once to the user).
-    */
-    public function confirm(User $user, string $code): array|false
-    {
-        if (!$this->verify($user, $code)) {
+        if (! $secret) {
             return false;
         }
 
-        $plainCodes   = $this->generateRecoveryCodes();
-        $hashedCodes  = array_map(fn($c) => Hash::make($c), $plainCodes);
+        return (bool) $this->google2fa->verifyKey($secret, $code, config('twofactor.window', 1));
+    }
 
-        $user->update([
+    /* Confirm setup with the first code. Returns the plain recovery codes (shown once) or false. */
+    public function confirm(User $user, string $code): array|false
+    {
+        if (! $this->verify($user, $code)) {
+            return false;
+        }
+
+        $plainCodes  = $this->generateRecoveryCodes();
+        $hashedCodes = array_map(fn ($c) => Hash::make($c), $plainCodes);
+
+        $user->forceFill([
             'two_factor_confirmed_at'   => now(),
             'two_factor_recovery_codes' => encrypt(json_encode($hashedCodes)),
-        ]);
+        ])->save();
 
         return $plainCodes;
     }
 
-    /*
-    | Disable 2FA completely — wipe secret and codes.
-    */
     public function disable(User $user): void
     {
-        $user->update([
+        $user->forceFill([
             'two_factor_secret'         => null,
             'two_factor_confirmed_at'   => null,
             'two_factor_recovery_codes' => null,
-        ]);
+        ])->save();
     }
 
-    /*
-    | Generate 10 random recovery codes in the format XXXX-XXXX-XXXX.
-    */
+    /* 10 codes shaped XXXX-XXXX-XXXX */
     private function generateRecoveryCodes(int $count = 10): array
     {
-        return Collection::times($count, function () {
-            return strtoupper(
-                Str::random(4) . '-' .
-                Str::random(4) . '-' .
-                Str::random(4)
-            );
-        })->toArray();
+        return Collection::times($count, fn () => strtoupper(
+            Str::random(4) . '-' . Str::random(4) . '-' . Str::random(4)
+        ))->toArray();
     }
 
     /*
-    | Try a recovery code — checks bcrypt against stored hashes.
-    | Invalidates (removes) the used code if valid.
-    | Returns true if a valid code was found and consumed.
+    | Try a recovery code. A valid code is consumed, so it works once only.
+    | Input is normalised: "abcd efgh ijkl", "ABCD-EFGH-IJKL" and "abcdefghijkl" all work.
     */
     public function attemptRecoveryCode(User $user, string $code): bool
     {
         $hashes = $user->getRecoveryCodes();
-        if (empty($hashes)) return false;
+
+        if (empty($hashes)) {
+            return false;
+        }
+
+        $code = $this->normaliseRecoveryCode($code);
 
         foreach ($hashes as $index => $hash) {
             if (Hash::check($code, $hash)) {
-                // Remove the used code so it cannot be reused
                 unset($hashes[$index]);
-                $user->update([
+
+                $user->forceFill([
                     'two_factor_recovery_codes' => encrypt(json_encode(array_values($hashes))),
-                ]);
+                ])->save();
+
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function normaliseRecoveryCode(string $code): string
+    {
+        $clean = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $code));
+
+        return strlen($clean) === 12 ? implode('-', str_split($clean, 4)) : strtoupper(trim($code));
     }
 }

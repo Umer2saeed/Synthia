@@ -22,55 +22,40 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-//    public function store(LoginRequest $request): RedirectResponse
-//    {
-//        $request->authenticate();
-//        $request->session()->regenerate();
-//
-//        // Record last login timestamp
-//        auth()->user()->update(['last_login_at' => now()]);
-//
-//        if (auth()->user()->hasRole('reader')) {
-//            return redirect()
-//                ->route('home')
-//                ->with('success', 'Welcome back, ' . auth()->user()->name . '!');
-//        }
-//
-//        return redirect()->intended(route('admin.dashboard', absolute: false));
-//    }
 
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
-        $user = auth()->user();
+        $user = $request->user();
 
+        /*
+        | 2FA: the password was correct, but the login is not finished yet.
+        | Log the user back out, remember WHO is mid-login in the session
+        | (for 10 minutes), and send them to the code page.
+        */
         if ($user->hasTwoFactorEnabled()) {
-            $userId = $user->id;
+            $remember = $request->boolean('remember');
 
-            auth()->logout();
-
-            $request->session()->put('2fa_user_id', $userId);
+            Auth::guard('web')->logout();
+            $request->session()->regenerate();
+            $request->session()->put('2fa_user_id', $user->id);
+            $request->session()->put('2fa_remember', $remember);
+            $request->session()->put('2fa_started_at', now()->timestamp);
 
             return redirect()->route('two-factor.challenge');
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | NO 2FA — complete login normally.
-        |
-        | Everything below is your original code, unchanged.
-        |----------------------------------------------------------------------
-        */
+        // No 2FA: normal login
         $request->session()->regenerate();
 
-        // Record last login timestamp
-        auth()->user()->update(['last_login_at' => now()]);
+        $user->update(['last_login_at' => now()]);
 
-        if (auth()->user()->hasRole('reader')) {
+        // Readers have no admin panel, so send them straight to the public site.
+        if ($user->hasRole('reader')) {
             return redirect()
                 ->route('home')
-                ->with('success', 'Welcome back, ' . auth()->user()->name . '!');
+                ->with('success', 'Welcome back, ' . $user->name . '!');
         }
 
         return redirect()->intended(route('admin.dashboard', absolute: false));

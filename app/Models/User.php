@@ -288,7 +288,7 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function hasTwoFactorEnabled(): bool
     {
-        return !is_null($this->two_factor_confirmed_at);
+        return ! is_null($this->two_factor_confirmed_at) && ! is_null($this->two_factor_secret);
     }
 
     /*
@@ -296,8 +296,7 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function hasTwoFactorPending(): bool
     {
-        return !is_null($this->two_factor_secret) &&
-            is_null($this->two_factor_confirmed_at);
+        return !is_null($this->two_factor_secret) && is_null($this->two_factor_confirmed_at);
     }
 
     /*
@@ -305,12 +304,14 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function decryptedTwoFactorSecret(): ?string
     {
-        if (!$this->two_factor_secret) return null;
+        if (is_null($this->two_factor_secret)) {
+            return null;
+        }
 
         try {
             return decrypt($this->two_factor_secret);
-        } catch (\Exception) {
-            return null;
+        } catch (\Throwable $e) {
+            return null;   // unreadable, for example APP_KEY changed after it was saved
         }
     }
 
@@ -321,11 +322,13 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function getRecoveryCodes(): array
     {
-        if (!$this->two_factor_recovery_codes) return [];
+        if (is_null($this->two_factor_recovery_codes)) {
+            return [];
+        }
 
         try {
-            return json_decode(decrypt($this->two_factor_recovery_codes), true) ?? [];
-        } catch (\Exception) {
+            return json_decode(decrypt($this->two_factor_recovery_codes), true) ?: [];
+        } catch (\Throwable $e) {
             return [];
         }
     }

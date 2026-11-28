@@ -9,40 +9,27 @@ use Symfony\Component\HttpFoundation\Response;
 class RequireTwoFactor
 {
     /*
-    | Force admin users to set up 2FA if they have not done so.
-    | Redirects to the 2FA setup page until they complete it.
-    | Non-admin users are not affected.
+    | Forces admins to set up 2FA, but ONLY when TWO_FACTOR_ENFORCE_ADMIN=true in .env.
+    | With the flag off (the default) this does nothing, so a 2FA bug can never
+    | lock you out of your own admin panel.
     */
     public function handle(Request $request, Closure $next): Response
     {
-        // DEVELOPMENT ONLY — remove before production
-        if (app()->environment('local')) {
+        if (! config('twofactor.enforce_admin')) {
             return $next($request);
         }
 
-        $user = auth()->user();
+        $user = $request->user();
 
-        if (!$user) {
+        if (! $user || ! $user->hasRole('admin')) {
             return $next($request);
         }
 
-        // Only enforce for admin role
-        if (!$user->hasRole('admin')) {
+        if ($user->hasTwoFactorEnabled() || $request->routeIs('two-factor.*')) {
             return $next($request);
         }
 
-        // Admin has 2FA — allow through
-        if ($user->hasTwoFactorEnabled()) {
-            return $next($request);
-        }
-
-        // Admin is currently setting up 2FA — allow the setup routes through
-        if ($request->routeIs('two-factor.*')) {
-            return $next($request);
-        }
-
-        // Admin has no 2FA — force them to set it up
         return redirect()->route('two-factor.setup')
-            ->with('warning', 'Admin accounts require Two-Factor Authentication. Please set it up to continue.');
+            ->with('warning', 'Admin accounts require two-factor authentication. Please set it up to continue.');
     }
 }
